@@ -1,2 +1,4 @@
 /gw2minion/settings.lua
 .gitignore
+*_settings.lua
+GW2Minion/QuestManagerProfiles/
