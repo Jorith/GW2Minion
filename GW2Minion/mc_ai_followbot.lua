@@ -40,6 +40,7 @@ end
 
 function mc_followbot.OnUpdate( tick )	
 	if ( gBotMode == GetString("followmode") and tick - mc_followbot.lasttick > 250 ) then
+		mc_followbot.lasttick = tick
 		if ( mc_followbot.targetID ~= 0 ) then
 			local target = CharacterList:Get(mc_followbot.targetID)
 			if ( TableSize(target)>0 ) then
@@ -310,7 +311,7 @@ e_NeedValidTarget_fm = inheritsFrom( ml_effect )
 function c_NeedValidTarget_fm:evaluate()
 	local target = Player:GetTarget()
 	if ( TableSize( target ) > 0 ) then
-		return ( target.dead or not target.attackable or (target.distance > mc_global.AttackRange and target.distance > 800 and target.los == false))
+		return ( target.dead or not target.attackable or (target.distance > ml_global_information.AttackRange and target.distance > 800 and target.los == false))
 	end	
 	return true
 end
@@ -334,7 +335,7 @@ function e_NeedValidTarget_fm:execute()
 					end
 					if ( TableSize( TList ) > 0 ) then
 						local id, E  = next( TList )
-						if ( id ~= nil and id ~= 0 and E ~= nil and E.distance <  mc_global.AttackRange) then
+						if ( id ~= nil and id ~= 0 and E ~= nil and E.distance <  ml_global_information.AttackRange) then
 							d("New Aggro Target ID:"..tostring(id))
 							Player:SetTarget(id)
 							return ml_log(true)	
@@ -349,7 +350,7 @@ function e_NeedValidTarget_fm:execute()
 	
 	-- we do PVP n kill players first ! :D
 	-- lowesthealth Player in CombatRange first	
-	local TList = ( CharacterList("nearest,attackable,alive,player,aggro,maxdistance="..mc_global.AttackRange) )
+	local TList = ( CharacterList("nearest,attackable,alive,player,aggro,maxdistance="..ml_global_information.AttackRange) )
 	if ( TableSize( TList ) > 0 ) then
 		local id, E  = next( TList )
 		if ( id ~= nil and id ~= 0 and E ~= nil ) then
@@ -360,7 +361,7 @@ function e_NeedValidTarget_fm:execute()
 	end
 			
 	-- lowesthealth in CombatRange 	
-	local TList = ( CharacterList("nearest,attackable,downed,player,maxdistance="..mc_global.AttackRange) )
+	local TList = ( CharacterList("nearest,attackable,downed,player,maxdistance="..ml_global_information.AttackRange) )
 	if ( TableSize( TList ) > 0 ) then
 		local id, E  = next( TList )
 		if ( id ~= nil and id ~= 0 and E ~= nil ) then
@@ -371,7 +372,7 @@ function e_NeedValidTarget_fm:execute()
 	end
 	
 	-- lowesthealth NPC in CombatRange 	
-	local TList = ( CharacterList("nearest,attackable,alive,aggro,maxdistance="..mc_global.AttackRange) )
+	local TList = ( CharacterList("nearest,attackable,alive,aggro,maxdistance="..ml_global_information.AttackRange) )
 	if ( TableSize( TList ) > 0 ) then
 		local id, E  = next( TList )
 		if ( id ~= nil and id ~= 0 and E ~= nil ) then
@@ -382,7 +383,7 @@ function e_NeedValidTarget_fm:execute()
 	end
 	
 	-- lowest gadget	
-	local TList = GadgetList("nearest,attackable,selectable,alive,maxdistance="..mc_global.AttackRange..",exclude_contentid="..mc_blacklist.GetExcludeString(GetString("monsters")))
+	local TList = GadgetList("nearest,attackable,selectable,alive,maxdistance="..ml_global_information.AttackRange..",exclude_contentid="..mc_blacklist.GetExcludeString(GetString("monsters")))
 	if ( TableSize( TList ) > 0 ) then
 		local id, E  = next( TList )
 		if ( id ~= nil and id ~= 0 and E ~= nil ) then
@@ -418,12 +419,12 @@ c_MoveIntoCombatRange_fm.running = false
 function c_MoveIntoCombatRange_fm:evaluate()    
 	local t = Player:GetTarget()
 	if ( t ) then		
-		if (t.distance >= mc_global.AttackRange or (t.isCharacter and not t.los) or (t.isGadget and not t.los and t.distance > mc_global.AttackRange) or (t.isGadget and not t.los and t.distance > 350)) then
+		if (t.distance >= ml_global_information.AttackRange or (t.isCharacter and not t.los) or (t.isGadget and not t.los and t.distance > ml_global_information.AttackRange) or (t.isGadget and not t.los and t.distance > 350)) then
 			if (Player.onmesh ) then
 				return true
 			else
 				-- not moving on navmesh, record path from our current pos so we can walk it back							
-				if ( t.los and t.distance < 800 and t.distance > mc_global.AttackRange ) then 
+				if ( t.los and t.distance < 800 and t.distance > ml_global_information.AttackRange ) then 
 					return true
 				end				
 			end
@@ -444,7 +445,7 @@ function e_MoveIntoCombatRange_fm:execute()
 	local t = Player:GetTarget()
 	if ( t ) then	
 		if (Player.onmesh ) then		
-			if ( t.distance >= mc_global.AttackRange or not t.los)then
+			if ( t.distance >= ml_global_information.AttackRange or not t.los)then
 				local tPos = t.pos
 				-- moveto(x,y,z,stoppingdistance,navsystem(normal/follow),navpath(straight/random),smoothturns)		
 				if ( tPos ) then

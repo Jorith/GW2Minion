@@ -75,14 +75,19 @@ end
 
 function mc_ai_assist.SetTargetAssist()
 	-- Try to get Enemy with los in range first
-	local target = mc_ai_assist.SelectTargetExtended(mc_global.AttackRange, 1)	
-	if ( not target ) then target = mc_ai_assist.SelectTargetExtended(mc_global.AttackRange, 0) end
-	if ( not target ) then target = mc_ai_assist.SelectTargetExtended(mc_global.AttackRange + 250, 0) end
+	local target = mc_ai_assist.SelectTargetExtended(ml_global_information.AttackRange, 1)	
+	if ( not target ) then target = mc_ai_assist.SelectTargetExtended(ml_global_information.AttackRange, 0) end
+	if ( not target ) then target = mc_ai_assist.SelectTargetExtended(ml_global_information.AttackRange + 250, 0) end
 	
 	if ( target ) then 
 		Player:SetTarget(target.id)
-		return mc_skillmanager.AttackTarget( target.id ) 
+		return mc_skillmanager.AttackTarget( target.id ) 		
 	else
+		-- see if we can swap weapons/kits to get a better attackrange
+		local currTarget = Player:GetTarget()
+		if ( currTarget ~= nil ) then
+			return mc_skillmanager.AttackTarget( currTarget.id )
+		end
 		return false
 	end
 end

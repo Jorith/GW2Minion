@@ -25,7 +25,9 @@ e_salvage.kitlist = {
 					-- special kits
 					[23045] = {name = GetString("mysticKit"),		rarity = 4,},		-- Mystic Kit (rarity 4)
 					[44602] = {name = GetString("unlimitedKit"),	rarity = 1,},	-- Copper-Fed Kit (rarity 1)
+					[19986] = {name = GetString("blackLionKit"), 	rarity = 5,}, --Black Lion Kit (Rarity 5)
 }
+
 
 function e_salvage:execute()
 	ml_log("e_need_salvage")
@@ -53,7 +55,8 @@ function e_salvage:execute()
 					break
 				-- try to get a tool with the same raritylevel or the closest one matching
 				elseif ((prefTool == nil and e_salvage.kitlist[tool.itemID])
-				and (bestTool == nil or ( math.abs(item.rarity - e_salvage.kitlist[tool.itemID].rarity) < math.abs(item.rarity - e_salvage.kitlist[tool.itemID].rarity)))
+				--and (bestTool == nil or ( math.abs(item.rarity - e_salvage.kitlist[tool.itemID].rarity) < math.abs(item.rarity - e_salvage.kitlist[tool.itemID].rarity)))
+				and (bestTool == nil or ( math.abs(item.rarity - e_salvage.kitlist[tool.itemID].rarity) < math.abs(item.rarity - bestTool.rarity)))
 				) then
 					bestTool = tool
 				end

@@ -69,7 +69,7 @@ function ml_cne_hub.execute()
 		if ( effect:isvalid() and effect:SafetyCheck() ) then
 			effect.execution_count = effect.execution_count + 1
 			--ml_global_information.LastEffect = effect
-			effect.last_execution = mc_global.now
+			effect.last_execution = ml_global_information.Now
 			effect.first_execution = 0					
 			if ( gFFXIVMinionEffect ~= nil ) then
 				gFFXIVMinionEffect = self.name.."."..effect.name

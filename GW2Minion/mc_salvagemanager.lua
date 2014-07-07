@@ -126,10 +126,12 @@ function mc_salvagemanager.ModuleInit()
 	
 	SalvageManager_Active = Settings.GW2Minion.SalvageManager_Active
 	SalvageManager_ItemIDInfo = Settings.GW2Minion.SalvageManager_ItemIDInfo
-	mc_salvagemanager.updateItemIDList()
-	mc_salvagemanager.filterList = Settings.GW2Minion.SalvageManager_FilterList
-	mc_salvagemanager.refreshFilterlist()
-	mc_salvagemanager.UpdateSalvageSingleItemList()
+	if (Player) then
+		mc_salvagemanager.updateItemIDList()
+		mc_salvagemanager.filterList = Settings.GW2Minion.SalvageManager_FilterList
+		mc_salvagemanager.refreshFilterlist()
+		mc_salvagemanager.UpdateSalvageSingleItemList()
+	end
 end
 
 --Fill the "Salvage Single Item"-dropdownlist

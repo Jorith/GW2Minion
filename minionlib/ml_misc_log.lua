@@ -3,7 +3,7 @@
 --require 'gui\\ml_logwindow'
  
 -- DumpTable : recursive print the passed table
-function ml_dumpTable( atable, intend )
+function DT( atable, intend )
 		if ( intend == nil ) then intend = 1 end
 
 		if ( atable ~= nil and type( atable )=="table" ) then
@@ -27,8 +27,8 @@ end
 function ml_error( text )
 	GUI_ToggleConsole(true)
 	d( "**ERROR**: " .. tostring( text ) )
-	GUI_WindowMinimized("GW2Console",false)
-	GUI_WindowVisible("GW2Console", true)
+
+
 end
 
 ml_logstring = ""

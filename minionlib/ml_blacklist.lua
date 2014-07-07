@@ -5,12 +5,12 @@ ml_blacklist.lastClearTime = 0
 
 -- checks for temporarily blacklisted entries and removed them if time is up
 function ml_blacklist.ClearBlacklists()
-    if (mc_global.now -ml_blacklist.lastClearTime > 500) then
-        ml_blacklist.lastClearTime = mc_global.now
+    if (TimeSince(ml_blacklist.lastClearTime) > 500) then
+        ml_blacklist.lastClearTime = ml_global_information.Now
     
         for name, blacklist in pairs(ml_blacklist.blacklist) do
             for id, entry in pairs (blacklist) do
-                if entry.time ~= true and mc_global.now -entry.time > 0 then
+                if entry.time ~= true and TimeSince(entry.time) > 0 then
                     ml_blacklist.DeleteEntry(name, id)
                 end
             end
@@ -55,7 +55,7 @@ function ml_blacklist.GetEntryTime(blacklistName, entryID)
         if (blacklist[entryID].time == true) then
             return true
         else
-            return blacklist[entryID].time - mc_global.now
+            return blacklist[entryID].time - ml_global_information.Now
         end
 	else
         return nil
@@ -84,10 +84,13 @@ end
 function ml_blacklist.GetExcludeString(blacklistName)
     local excludeString = ""
 	local blacklist = ml_blacklist.blacklist[blacklistName]
-    for id, entry in pairs(blacklist) do
-        excludeString = excludeString .. id .. ";"
+    if ( blacklist ) then
+		for id, entry in pairs(blacklist) do
+			excludeString = excludeString .. id .. ";"
+		end
     end
-    
+	
+
     if (excludeString ~= "") then
         -- strip off trailing comma
         return excludeString:sub(1,excludeString:len() - 1) 

@@ -8,7 +8,7 @@ mc_skillmanager.SkillProfile = {}
 mc_skillmanager.SkillRecordingActive = false
 mc_skillmanager.RecordSkillTmr = 0
 mc_skillmanager.RegisteredButtonEventList = {}
-mc_skillmanager.cskills = {} -- Current List of Skills, gets constantly updated each pulse
+mc_skillmanager.currentskills = {} -- Current List of Skills, gets constantly updated each pulse
 mc_skillmanager.prevSkillID = 0
 mc_skillmanager.SwapTmr = 0 -- General WeaponSwap Timer
 mc_skillmanager.SwapRTmr = 0 -- Random WeaponSwap Timer
@@ -30,6 +30,7 @@ mc_skillmanager.EngineerKits = {
 	[5812] = "BombKit",
 	[5927] = "FlameThrower",
 	[6020] = "GrenadeKit",
+	[5805] = "GrenadeKit",
 	[5904] = "ToolKit",
 	[5933] = "ElixirGun",
 	--[5802] = "Medkit",
@@ -153,19 +154,20 @@ function mc_skillmanager.ModuleInit()
 	GUI_NewCheckbox(mc_skillmanager.mainwindow.name,GetString("SwapCD"),"gSMSwapCD",GetString("AdvancedSettings"))
 	GUI_NewCheckbox(mc_skillmanager.mainwindow.name,GetString("SwapRange"),"gSMSwapRange",GetString("AdvancedSettings"))
 	
-	local prof = Player.profession
-	if ( prof ~= nil ) then
-		if (prof == 3) then	-- Engineer
-		GUI_NewComboBox(mc_skillmanager.mainwindow.name,GetString("PriorizeKit"),"gSMPrioKit",GetString("AdvancedSettings"),"None,BombKit,FlameThrower,GrenadeKit,ToolKit,ElixirGun")
-		
-		elseif( prof == 6 ) then -- Elementalist
-			GUI_NewComboBox(mc_skillmanager.mainwindow.name,GetString("PriorizeAttunement1"),"gSMPrioAtt",GetString("AdvancedSettings"),"None,Fire,Water,Air,Earth")
-			GUI_NewComboBox(mc_skillmanager.mainwindow.name,GetString("PriorizeAttunement2"),"gSMPrioAtt2",GetString("AdvancedSettings"),"None,Fire,Water,Air,Earth")
-			GUI_NewComboBox(mc_skillmanager.mainwindow.name,GetString("PriorizeAttunement3"),"gSMPrioAtt3",GetString("AdvancedSettings"),"None,Fire,Water,Air,Earth")
-			GUI_NewComboBox(mc_skillmanager.mainwindow.name,GetString("PriorizeAttunement4"),"gSMPrioAtt4",GetString("AdvancedSettings"),"None,Fire,Water,Air,Earth")
-		end				
+	if ( Player ) then
+		local prof = Player.profession
+		if ( prof ~= nil ) then
+			if (prof == 3) then	-- Engineer
+			GUI_NewComboBox(mc_skillmanager.mainwindow.name,GetString("PriorizeKit"),"gSMPrioKit",GetString("AdvancedSettings"),"None,BombKit,FlameThrower,GrenadeKit,ToolKit,ElixirGun")
+			
+			elseif( prof == 6 ) then -- Elementalist
+				GUI_NewComboBox(mc_skillmanager.mainwindow.name,GetString("PriorizeAttunement1"),"gSMPrioAtt",GetString("AdvancedSettings"),"None,Fire,Water,Air,Earth")
+				GUI_NewComboBox(mc_skillmanager.mainwindow.name,GetString("PriorizeAttunement2"),"gSMPrioAtt2",GetString("AdvancedSettings"),"None,Fire,Water,Air,Earth")
+				GUI_NewComboBox(mc_skillmanager.mainwindow.name,GetString("PriorizeAttunement3"),"gSMPrioAtt3",GetString("AdvancedSettings"),"None,Fire,Water,Air,Earth")
+				GUI_NewComboBox(mc_skillmanager.mainwindow.name,GetString("PriorizeAttunement4"),"gSMPrioAtt4",GetString("AdvancedSettings"),"None,Fire,Water,Air,Earth")
+			end				
+		end
 	end
-	
 	GUI_NewButton(mc_skillmanager.mainwindow.name,GetString("autoetectSkills"),"SMAutodetect",GetString("skillEditor"))
 	RegisterEventHandler("SMAutodetect",mc_skillmanager.AutoDetectSkills)	
 	GUI_NewButton(mc_skillmanager.mainwindow.name,GetString("saveProfile"),"SMSaveEvent")	
@@ -194,9 +196,12 @@ function mc_skillmanager.ModuleInit()
 	-- EDITOR WINDOW
 	GUI_NewWindow(mc_skillmanager.editwindow.name,mc_skillmanager.mainwindow.x+mc_skillmanager.mainwindow.w,mc_skillmanager.mainwindow.y,mc_skillmanager.editwindow.w,mc_skillmanager.editwindow.h,true)		
 	GUI_NewField(mc_skillmanager.editwindow.name,GetString("maMarkerName"),"SKM_NAME","SkillDetails")
-	GUI_NewCheckbox(mc_skillmanager.editwindow.name,GetString("setsAttackRange"),"SKM_ON","SkillDetails")
-	GUI_NewCheckbox(mc_skillmanager.editwindow.name,GetString("los"),"SKM_LOS","SkillDetails")
-	GUI_NewCheckbox(mc_skillmanager.editwindow.name,GetString("channeled"),"SKM_CHAN","SkillDetails")
+	GUI_NewField(mc_skillmanager.editwindow.name,GetString("maMarkerID"),"SKM_ID","SkillDetails")		
+	GUI_NewField(mc_skillmanager.editwindow.name,GetString("prevSkillID"),"SKM_PrevID","SkillDetails");
+	GUI_NewCheckbox(mc_skillmanager.editwindow.name,GetString("setsAttackRange"),"SKM_ATKRNG","SkillDetails")	
+	GUI_NewCheckbox(mc_skillmanager.editwindow.name,GetString("los"),"SKM_LOS","SkillDetails") -- Needed ?	
+	GUI_NewNumeric(mc_skillmanager.editwindow.name,GetString("casttime"),"SKM_CASTTIME","SkillDetails")	
+	GUI_NewNumeric(mc_skillmanager.editwindow.name,GetString("smthrottle"),"SKM_THROTTLE","SkillDetails");	
 	GUI_NewNumeric(mc_skillmanager.editwindow.name,GetString("minRange"),"SKM_MinR","SkillDetails")
 	GUI_NewNumeric(mc_skillmanager.editwindow.name,GetString("maxRange"),"SKM_MaxR","SkillDetails")
 	GUI_NewComboBox(mc_skillmanager.editwindow.name,GetString("targetType"),"SKM_TType","SkillDetails","Enemy,Self");
@@ -222,7 +227,7 @@ function mc_skillmanager.ModuleInit()
 	GUI_NewField(mc_skillmanager.editwindow.name,GetString("targetHasNot"),"SKM_TNEff1","SkillDetails");		
 	GUI_NewNumeric(mc_skillmanager.editwindow.name,"Target has #Boons >","SKM_TBoonC","SkillDetails");
 	GUI_NewNumeric(mc_skillmanager.editwindow.name,"Target has #Conditions >","SKM_TCondC","SkillDetails");	
-	GUI_NewField(mc_skillmanager.editwindow.name,GetString("prevSkillID"),"SKM_PrevID","SkillDetails");	
+		
 	
 	
 	GUI_UnFoldGroup(mc_skillmanager.editwindow.name,"SkillDetails")
@@ -237,10 +242,12 @@ function mc_skillmanager.ModuleInit()
 	RegisterEventHandler("SMESkillDOWNEvent",mc_skillmanager.EditorButtonHandler)	
 	GUI_NewButton(mc_skillmanager.editwindow.name,"UP","SMESkillUPEvent")
 	RegisterEventHandler("SMESkillUPEvent",mc_skillmanager.EditorButtonHandler)
-		
-	mc_skillmanager.UpdateProfiles() -- Update the profiles dropdownlist
-	GUI_DeleteGroup(mc_skillmanager.mainwindow.name,"ProfileSkills")
-	mc_skillmanager.UpdateCurrentProfileData()	
+	
+	if ( Player ) then
+		mc_skillmanager.UpdateProfiles() -- Update the profiles dropdownlist
+		GUI_DeleteGroup(mc_skillmanager.mainwindow.name,"ProfileSkills")
+		mc_skillmanager.UpdateCurrentProfileData()
+	end
 end
 
 function mc_skillmanager.UpdateCurrentProfileData()
@@ -267,16 +274,14 @@ function mc_skillmanager.UpdateCurrentProfileData()
 								--d("Adding Skill :"..newskill.name.."Prio:"..tostring(newskill.prio))
 								table.insert(unsortedSkillList,tonumber(newskill.prio),newskill)						
 								newskill = {}
-								elseif ( key == "ID" )then newskill.skillID = tonumber(value)
 								elseif ( key == "NAME" )then newskill.name = value
-								elseif ( key == "ON" )then newskill.used = tostring(value)
+								elseif ( key == "ID" )then newskill.skillID = tonumber(value)
+								elseif ( key == "PrevID" )then newskill.previd = tonumber(value)								
+								elseif ( key == "ATKRNG" )then newskill.atkrng = tostring(value)
 								elseif ( key == "Prio" )then newskill.prio = tonumber(value)
-								elseif ( key == "LOS" )then 
-									if ( tostring(value) == "Yes" ) then newskill.los = "1" 
-									elseif ( tostring(value) == "No" ) then newskill.los = "0" 
-									else	newskill.los = tostring(value)
-									end
-								elseif ( key == "CHAN" )then newskill.channel = tostring(value)	
+								elseif ( key == "LOS" )then newskill.los = tostring(value)
+								elseif ( key == "CASTTIME" )then newskill.casttime = tonumber(value)
+								elseif ( key == "THROTTLE" )then newskill.throttle = tonumber(value)								
 								elseif ( key == "MinR" )then newskill.minRange = tonumber(value)
 								elseif ( key == "MaxR" )then newskill.maxRange = tonumber(value)
 								elseif ( key == "TType" )then newskill.ttype = tostring(value)
@@ -301,8 +306,7 @@ function mc_skillmanager.UpdateCurrentProfileData()
 								elseif ( key == "TEff1" )then newskill.teff1 = tostring(value)
 								elseif ( key == "TNEff1" )then newskill.tneff1 = tostring(value)						
 								elseif ( key == "TCondC" )then newskill.tcondc = tonumber(value)								
-								elseif ( key == "TBoonC" )then newskill.tboonc = tonumber(value)
-								elseif ( key == "PrevID" )then newskill.previd = tostring(value)		
+								elseif ( key == "TBoonC" )then newskill.tboonc = tonumber(value)										
 							end
 						else
 							ml_error("Error loading inputline: Key: "..(tostring(key)).." value:"..tostring(value))
@@ -361,11 +365,12 @@ function mc_skillmanager.GUIVarUpdate(Event, NewVals, OldVals)
 			mc_skillmanager.SkillProfile = {}
 			mc_skillmanager.UpdateCurrentProfileData()
 			Settings.GW2Minion.gSMprofile = tostring(v)
+		elseif ( k == "SKM_PrevID" ) then mc_skillmanager.SkillProfile[SKM_Prio].previd = tonumber(v)
 		elseif ( k == "SKM_NAME" ) then mc_skillmanager.SkillProfile[SKM_Prio].name = v
-		elseif ( k == "SKM_ON" ) then mc_skillmanager.SkillProfile[SKM_Prio].used = v
-		elseif ( k == "SKM_LOS" ) then mc_skillmanager.SkillProfile[SKM_Prio].los = v
-		elseif ( k == "SKM_INSTA" ) then mc_skillmanager.SkillProfile[SKM_Prio].insta = v
-		elseif ( k == "SKM_CHAN" ) then mc_skillmanager.SkillProfile[SKM_Prio].channel = v	
+		elseif ( k == "SKM_ATKRNG" ) then mc_skillmanager.SkillProfile[SKM_Prio].atkrng = tostring(v)
+		elseif ( k == "SKM_LOS" ) then mc_skillmanager.SkillProfile[SKM_Prio].los = tostring(v)
+		elseif ( k == "SKM_CASTTIME" ) then mc_skillmanager.SkillProfile[SKM_Prio].casttime = tonumber(v)
+		elseif ( k == "SKM_THROTTLE" ) then mc_skillmanager.SkillProfile[SKM_Prio].throttle = tonumber(v)		
 		elseif ( k == "SKM_MinR" ) then mc_skillmanager.SkillProfile[SKM_Prio].minRange = tonumber(v)
 		elseif ( k == "SKM_MaxR" ) then mc_skillmanager.SkillProfile[SKM_Prio].maxRange = tonumber(v)
 		elseif ( k == "SKM_TType" ) then mc_skillmanager.SkillProfile[SKM_Prio].ttype = v
@@ -390,8 +395,7 @@ function mc_skillmanager.GUIVarUpdate(Event, NewVals, OldVals)
 		elseif ( k == "SKM_TNEff1" ) then mc_skillmanager.SkillProfile[SKM_Prio].tneff1 = v				
 		elseif ( k == "SKM_TCondC" ) then mc_skillmanager.SkillProfile[SKM_Prio].tcondc = tonumber(v)
 		elseif ( k == "SKM_PBoonC" ) then mc_skillmanager.SkillProfile[SKM_Prio].pboonc = tonumber(v)
-		elseif ( k == "SKM_TBoonC" ) then mc_skillmanager.SkillProfile[SKM_Prio].tboonc = tonumber(v)
-		elseif ( k == "SKM_PrevID" ) then mc_skillmanager.SkillProfile[SKM_Prio].previd = v		
+		elseif ( k == "SKM_TBoonC" ) then mc_skillmanager.SkillProfile[SKM_Prio].tboonc = tonumber(v)			
 		end
 	end
 end
@@ -481,10 +485,12 @@ function mc_skillmanager.SaveProfile()
 		while skID and skill do
 			string2write = string2write.."SKM_NAME="..skill.name.."\n"
 			string2write = string2write.."SKM_ID="..skill.skillID.."\n"
-			string2write = string2write.."SKM_ON="..skill.used.."\n"			
+			string2write = string2write.."SKM_PrevID="..skill.previd.."\n"
+			string2write = string2write.."SKM_ATKRNG="..skill.atkrng.."\n"			
 			string2write = string2write.."SKM_Prio="..skill.prio.."\n"
 			string2write = string2write.."SKM_LOS="..skill.los.."\n"
-			string2write = string2write.."SKM_CHAN="..skill.channel.."\n"			
+			string2write = string2write.."SKM_CASTTIME="..skill.casttime.."\n"
+			string2write = string2write.."SKM_THROTTLE="..skill.throttle.."\n"
 			string2write = string2write.."SKM_MinR="..skill.minRange.."\n"
 			string2write = string2write.."SKM_MaxR="..skill.maxRange.."\n" 
 			string2write = string2write.."SKM_TType="..skill.ttype.."\n"
@@ -509,8 +515,7 @@ function mc_skillmanager.SaveProfile()
 			string2write = string2write.."SKM_TNEff1="..skill.tneff1.."\n" 
 			string2write = string2write.."SKM_TCondC="..skill.tcondc.."\n" 
 			string2write = string2write.."SKM_PBoonC="..skill.pboonc.."\n" 
-			string2write = string2write.."SKM_TBoonC="..skill.tboonc.."\n"
-			string2write = string2write.."SKM_PrevID="..skill.previd.."\n"			
+			string2write = string2write.."SKM_TBoonC="..skill.tboonc.."\n"						
 			string2write = string2write.."SKM_END=0\n"
 		
 			skID,skill = next (mc_skillmanager.SkillProfile,skID)
@@ -635,9 +640,11 @@ function mc_skillmanager.CreateNewSkillEntry(skill)
 				skillID = skID,
 				prio = newskillprio,
 				name = skname,
-				used = skill.used or "1",		
-				los = skill.los or "1",
-				channel = skill.channel or "0",
+				previd = skill.previd or "",
+				atkrng = skill.atkrng or "1",		
+				los = skill.los or "1",				
+				casttime = skill.casttime or 250,
+				throttle = skill.throttle or 0,
 				minRange = skill.minRange or 0,
 				maxRange = skill.maxRange or 0,
 				ttype = skill.ttype or "Enemy",
@@ -662,8 +669,7 @@ function mc_skillmanager.CreateNewSkillEntry(skill)
 				tneff1 = skill.tneff1 or "",
 				tcondc = skill.condc or 0,
 				pboonc = skill.pboonc or 0,
-				tboonc = skill.tboonc or 0,
-				previd = skill.previd or ""				
+				tboonc = skill.tboonc or 0,						
 			}		
 		end		
 	end
@@ -677,10 +683,13 @@ function mc_skillmanager.EditSkill(event)
 	local skill = mc_skillmanager.SkillProfile[tonumber(event)]	
 	if ( skill ) then		
 		SKM_NAME = skill.name or ""
-		SKM_ON = skill.used or "1"
+		SKM_ID = skill.skillID or ""
+		SKM_PrevID = skill.previd or ""
+		SKM_ATKRNG = skill.atkrng or "1"
 		SKM_Prio = tonumber(event)
 		SKM_LOS = skill.los or "1"
-		SKM_CHAN = skill.channel or "0"
+		SKM_CASTTIME = skill.casttime or 250
+		SKM_THROTTLE = skill.throttle or 0
 		SKM_MinR = tonumber(skill.minRange) or 0
 		SKM_MaxR = tonumber(skill.maxRange) or 160
 		SKM_TType = skill.ttype or "Either"
@@ -705,8 +714,7 @@ function mc_skillmanager.EditSkill(event)
 		SKM_TNEff1 = skill.tneff1 or ""
 		SKM_TCondC = tonumber(skill.tcondc) or 0
 		SKM_PBoonC = tonumber(skill.pboonc) or 0
-		SKM_TBoonC = tonumber(skill.tboonc) or 0
-		SKM_PrevID = skill.previd or ""
+		SKM_TBoonC = tonumber(skill.tboonc) or 0		
 	end
 end
 
@@ -740,11 +748,15 @@ function mc_skillmanager.ToggleMenu()
 end
 
 
--- Updates the MaxAttackRange and our cskills List
+-- Updates the MaxAttackRange and our currentskills List which is used in attack and heal
 function mc_skillmanager.GetAttackRange()
 	local maxrange = 150
-	mc_skillmanager.cskills = {}
+	local tempskilllist = {}
 	
+	-- Clear list
+	mc_skillmanager.currentskills = {}	
+	
+	-- Go through all our 16 skills once
 	for i = 1, 16, 1 do	
 		local skill = Player:GetSpellInfo(GW2.SKILLBARSLOT["Slot_" .. i])
 		if ( skill ~= nil ) then			
@@ -754,35 +766,102 @@ function mc_skillmanager.GetAttackRange()
 				else
 					maxrange = skill.maxRange
 				end
-			end
-			
-			--Find this skill in our SkillProfile and get its prio into the CurrentListOfSkills
-			if ( TableSize(mc_skillmanager.SkillProfile) > 0 ) then				
-				local sID = skill.skillID
-				for k,v in pairs(mc_skillmanager.SkillProfile) do					
-					if ( v.skillID == sID) then						
-						--d("Adding skill "..tostring(sID) .." WTF "..tostring(v.skillID) .." to index "..tostring(i))						
-						mc_skillmanager.cskills[i] = skill
-						mc_skillmanager.cskills[i].slot = GW2.SKILLBARSLOT["Slot_" .. i]
-						mc_skillmanager.cskills[i].prio = v.prio						
-						-- Get Max Attack Range for global use
-						if (v.used == "1" and i > 1 and i < 6 ) then -- Only use Skill 2-5 for Attackrange check
-							--d(skill.name.." "..tostring(skill.maxRange).." "..tostring(v.name).." "..tostring(v.maxRange))
-							if ( skill.cooldown == 0 and v.maxRange > maxrange) then
-								maxrange = v.maxRange
-							end							
-						end						
-						break
-					end
-				end
-			end		
+			end			
+			-- Save the skillptr in tempskillist with the skillID beeing the index. By not accessing the skillptr's ID member but the table index instead, this improves heavily the performance
+			tempskilllist[skill.skillID] = skill
 		end		
 	end
+			
+	-- Go through the SkillProfile and check if we currently have this skill in our slotbar, then add this skill to our currently castable "currentskills" table sorted by cast priority	
+	if ( TableSize(mc_skillmanager.SkillProfile) > 0 and TableSize(tempskilllist) > 0 ) then
+		for prio,skill in pairs(mc_skillmanager.SkillProfile) do
+				
+			for tmpSkillID,skillptr in pairs(tempskilllist) do
+					
+				if ( tmpSkillID == skill.skillID and skillptr.cooldown == 0 ) then-- skill is in our profile + current castbar
+						
+					-- Add this skill to the currentskills list for use in Attack/Heal, we save the SkillProfile data in currentskills and set the slot where this spell is available
+					local currentslot = skillptr.slot
+					mc_skillmanager.currentskills[prio] = skill
+					mc_skillmanager.currentskills[prio].slot = currentslot
+					mc_skillmanager.currentskills[prio].isGroundTargeted = skillptr.isGroundTargeted
+					mc_skillmanager.currentskills[prio].stupidlua = prio
+					--d("ADDING: " ..skill.name.." P: "..tostring(skill.prio).." S"..tostring(currentslot))
+					
+					-- Get Max Attack Range for global use
+					if (skill.atkrng == "1" and currentslot > 5 and currentslot < 10 ) then -- Only use Skill 2-5 for Attackrange check
+						--d(skill.name.." "..tostring(skill.maxRange).." "..tostring(skill.name).." "..tostring(skill.maxRange))
+						if ( skill.maxRange > maxrange) then
+							maxrange = skill.maxRange
+						end							
+					end						
+					break
+				end
+			end
+		end
+	end	
 	return maxrange
 end
 
+-- Checks if the passed skillmanager-skill can be cast at the passed target
+function mc_skillmanager.CanCast( target, skill , playerbufflist, targetbufflist )
+	
+	-- Check general conditions
+	if ( skill.throttle	> 0 and skill.timelastused and mc_global.now - skill.timelastused < skill.throttle)  then return false end
+	if ( skill.previd ~= "" and not StringContains(skill.previd, mc_skillmanager.prevSkillID)) then return false end
+	if ( skill.ooc == "Yes" and ml_global_information.Player_InCombat == true ) then return false end
+	--if ( skill.ooc == "No" and ml_global_information.Player_InCombat == false and ( skill.slot ~= 1 or ( target and target.attackable ))) then return false end
+		
+	-- Check Player related conditions				
+	if ( skill.phpl		> 0 and skill.phpl > ml_global_information.Player_Health.percent)  then return false end
+	if ( skill.phpb 	> 0 and skill.phpb < ml_global_information.Player_Health.percent)  then return false end
+	if ( skill.ppowl	> 0 and skill.ppowl> ml_global_information.Player_Power)  then return false end
+	if ( skill.ppowb 	> 0 and skill.ppowb< ml_global_information.Player_Power)  then return false end
+	if ( skill.pendl	> 0 and skill.pendl> ml_global_information.Player_Endurance)  then return false end
+	if ( skill.pendb 	> 0 and skill.pendb< ml_global_information.Player_Endurance)  then return false end
+	--Possible buffcheck values: "134,245+123,552+123+531"
+	if ( skill.peff1 ~= ""  and playerbufflist and not mc_helper.BufflistHasBuffs(playerbufflist, skill.peff1) ) then return false end
+	if ( skill.pneff1 ~= "" and playerbufflist and mc_helper.BufflistHasBuffs(playerbufflist, skill.pneff1) ) then return false end
+	if ( skill.pcondc > 0   and playerbufflist and CountConditions(playerbufflist) <= skill.pcondc) then return false end
+	if ( skill.pboonc > 0   and playerbufflist and CountBoons(playerbufflist) <= skill.pboonc) then return false end
+					
+
+	-- Check Target related conditions
+	if ( target and skill.ttype == "Enemy" ) then		
+		if ( skill.los == "Yes" and target.los == false ) then return false end
+		if ( skill.minRange > 0 and target.distance < skill.minRange) then return false end
+		if ( skill.maxRange > 0 and target.distance > skill.maxRange) then return false end
+		if ( skill.thpl		> 0 and skill.thpl > target.health.percent) then return false end
+		if ( skill.thpb 	> 0 and skill.thpb < target.health.percent) then return false end
+		if ( skill.tmove=="Yes" and target.isCharacter and target.movementstate == GW2.MOVEMENTSTATE.GroundNotMoving )then return false end
+		if ( skill.tmove=="No" and target.isCharacter and target.movementstate == GW2.MOVEMENTSTATE.GroundMoving )then return false end
+		--Possible buffcheck values: "134,245+123,552+123+531"
+		if ( skill.teff1 ~= ""  and targetbufflist and not mc_helper.BufflistHasBuffs(targetbufflist, skill.teff1) ) then return false end
+		if ( skill.tneff1 ~= "" and targetbufflist and mc_helper.BufflistHasBuffs(targetbufflist, skill.tneff1) ) then return false end
+		if ( skill.tcondc > 0   and targetbufflist and CountConditions(targetbufflist) <= skill.tcondc) then return false end
+		if ( skill.tboonc > 0   and targetbufflist and CountBoons(targetbufflist) <= skill.tboonc) then return false end			
+	end
+	
+	if ( target ) then
+		-- Friends around Target check
+		if ( skill.tacount > 0 and skill.tarange > 0) then
+			if ( TableSize(CharacterList("friendly,maxdistance="..skill.tarange..",distanceto="..target.id)) < skill.tacount) then return false end
+		end	
+		-- Enemies around Target check
+		if ( skill.tecount > 0 and skill.terange > 0) then
+			if ( TableSize(CharacterList("alive,attackable,maxdistance="..skill.terange..",distanceto="..target.id)) < skill.tecount) then return false end
+		end
+	end		  
+	
+	-- We are still here, we should be able to cast this spell
+	return true
+end
+
+
 
 mc_skillmanager.PetTmr = 0
+mc_skillmanager.lastcastTmr = 0
+mc_skillmanager.lastTarget = {}
 function mc_skillmanager.AttackTarget( TargetID )	
 	local fastcastcount = 0
 	
@@ -796,10 +875,12 @@ function mc_skillmanager.AttackTarget( TargetID )
 		end
 	end
 	
+	-- Throttle to not cast too fast & interrupt channeling spells
+	if ( mc_global.now - mc_skillmanager.lastcastTmr < 250 ) then return false end
 	
 	--Valid Target?
 	local target
-	if ( not TargetID or TargetID == 0) then
+	if ( TargetID == nil or TargetID == 0) then
 		target = Player:GetTarget()
 		if ( target ) then TargetID = target.id end
 	else
@@ -811,172 +892,116 @@ function mc_skillmanager.AttackTarget( TargetID )
 	
 		
 	if ( target and TargetID and target.attackable ) then	
-		local mybuffs = Player.buffs		
-		local targetbuffs = nil
+		local playerbufflist = Player.buffs		
+		local targetbufflist = nil
 		if ( target.isCharacter) then
-			targetbuffs = target.buffs
+			targetbufflist = target.buffs
 		end
-		if ( TableSize(mc_skillmanager.SkillProfile) > 0 and Player:CanCast()) then
+		
+		local cast = false
+		
+		if ( TableSize(mc_skillmanager.currentskills) > 0 ) then
 			mc_skillmanager.SwapWeaponCheck("Pulse")
 			
-			for prio,skill in pairs(mc_skillmanager.SkillProfile) do
+			local cancast = Player:CanCast() -- some skills like grenades can be cast faster without that check
+			
+			for prio,skill in pairsByKeys(mc_skillmanager.currentskills) do
 				
-				--Try to find this skill in our current Skill List
-				local currentSlot = 0
-				for i = 1, 16, 1 do					
-					if ( mc_skillmanager.cskills[i] and mc_skillmanager.cskills[i].skillID == skill.skillID and mc_skillmanager.cskills[i].cooldown == 0 and skill.ooc ~= "Yes") then						
-						--d("Found Matching Skill, Cast Slot "..tostring(i) .. " Name "..tostring(mc_skillmanager.cskills[i].name).. " Name "..tostring(mc_skillmanager.cskills[i].cooldown) )
-						currentSlot = i						
-						break
-					end
-				end
-				if ( currentSlot > 0 ) then
-					--d("Checking Conditions for Cast Slot "..tostring(currentSlot))
-					
-					-- re-get Target, since this is a long loop and gw2 runs on several threads, in rare occasions it seems to happen that a target gets invalid while we are still in that for loop
-					-- so making sure it is valid in each round, performance impact huge ? 
-					if ( CharacterList:Get(TargetID) == nil and GadgetList:Get(TargetID) == nil) then
-						ml_error("For-Loop in Skillmanager lost its target!!!!!!!!!!!!")
-						break
-					else
-						mybuffs = Player.buffs
-						if ( target.isCharacter) then
-							targetbuffs = target.buffs
-						end
-					end
-					-- TARGETTYPE + LOS + RANGE + MOVEMENT + HEALTH CHECK						
-					if (skill.ttype == "Enemy" and ( (skill.tmove == "No" and target.movementstate == GW2.MOVEMENTSTATE.GroundMoving)
-							or (skill.tmove == "Yes" and target.isCharacter and target.movementstate == GW2.MOVEMENTSTATE.GroundNotMoving)
-							or (skill.minRange > 0 and target.distance < skill.minRange)
-							or (skill.maxRange > 0 and target.distance > skill.maxRange)
-							or (skill.thpl > 0 and skill.thpl > target.health.percent)
-							or (skill.thpb > 0 and skill.thpb < target.health.percent)
-							or (skill.los == "Yes" and not target.los)
-							)) then continue end	
-							
-					-- PLAYER HEALTH,POWER,ENDURANCE CHECK				
-					if ( (skill.phpl > 0 and skill.phpl > Player.health.percent)
-						or (skill.phpb > 0 and skill.phpb < Player.health.percent)
-						or (skill.ppowl > 0 and skill.ppowl > Player.power)
-						or (skill.ppowb > 0 and skill.ppowb < Player.power)
-						or (skill.pendl > 0 and skill.pendl > Player.endurance)
-						or (skill.pendb > 0 and skill.pendb < Player.endurance)					
-						) then continue end
-						
-					-- PLAYER BUFF AND CONDITION CHECKS
-					if ( skill.peff1 ~= "" and mybuffs )then 	
-						--Possible value in peff1: "134,245+123,552+123+531"
-						--d("Buffcheck : "..tostring(mc_helper.BufflistHasBuffs(mybuffs, skill.peff1)))
-						if ( not mc_helper.BufflistHasBuffs(mybuffs, skill.peff1) ) then continue end											
-					end
-					if ( skill.pneff1 ~= "" and mybuffs )then 	
-						--Possible value in pneff1: "134,245+123,552+123+531"
-						--d("Not Buffcheck : "..tostring(mc_helper.BufflistHasBuffs(mybuffs, skill.pneff1)))
-						if ( mc_helper.BufflistHasBuffs(mybuffs, skill.pneff1) ) then continue end
-					end						
-					if ( skill.pcondc > 0 and mybuffs ) then																		
-						if (CountConditions(mybuffs) <= skill.pcondc) then continue end								
-					end
-					if ( skill.pboonc > 0 and mybuffs ) then
-						if (CountBoons(mybuffs) <= skill.pboonc) then continue end						
-					end	
-					--ALLIE AE CHECK
-					if ( skill.tacount > 0 and skill.tarange > 0) then
-						--d("ALLIE AE CHECK "..tostring(TableSize(CharacterList("friendly,maxdistance="..skill.tarange..",distanceto="..target.id))))
-						if (  TableSize(CharacterList("friendly,maxdistance="..skill.tarange..",distanceto="..target.id)) < skill.tacount) then continue end
-					end	
-					
-					-- TARGET BUFF CHECKS 
-					if ( skill.teff1 ~= "" and targetbuffs )then 
-						--Possible value in teff1: "134,245+123,552+123+531"
-						--d("Target Buffcheck : "..tostring(mc_helper.BufflistHasBuffs(mybuffs, skill.teff1)))
-						if ( not mc_helper.BufflistHasBuffs(targetbuffs, skill.teff1) ) then continue end	
-					end						
-					if ( skill.tneff1 ~= "" and targetbuffs )then 
-						--Possible value in tneff1: "134,245+123,552+123+531"
-						--d("Not Target Buffcheck : "..tostring(mc_helper.BufflistHasBuffs(mybuffs, skill.tneff1)))
-						if ( mc_helper.BufflistHasBuffs(targetbuffs, skill.tneff1) ) then continue end
-					end
-					-- TARGET AE CHECK
-					if ( skill.tecount > 0 and skill.terange > 0) then
-						if ( TableSize(CharacterList("alive,attackable,maxdistance="..skill.terange..",distanceto="..target.id)) < skill.tecount) then continue end
-					end
-					-- TARGET #CONDITIONS CHECK
-					if ( skill.tcondc > 0 and targetbuffs ) then
-						if (CountConditions(targetbuffs) <= skill.tcondc) then continue end			
-					end	
-					-- TARGET #BOON CHECK
-					if ( skill.tboonc > 0 and targetbuffs ) then
-						if (CountBoons(targetbuffs) <= skill.tboonc) then continue end						
-					end	
-												
-					 -- PREVIOUS SKILL					
-                    if ( mc_skillmanager.prevSkillID ~= 0 and skill.previd ~= "" ) then
-                        --d("Previous SkillID "..tostring(mc_skillmanager.prevSkillID))
-						if ( not StringContains(skill.previd, mc_skillmanager.prevSkillID) ) then continue end
-                    end
-					
-					--d("Cast Slot "..tostring(currentSlot))
-					
+				--d("CASTCHECK: " ..skill.name.." P: "..tostring(prio).." Sx: "..tostring(skill.slot).." CanCast: "..tostring(mc_skillmanager.CanCast( target, skill , playerbufflist, targetbufflist)))
+				
+				if ( (cancast or (not cancast and skill.throttle == 0)) and mc_skillmanager.CanCast( target, skill , playerbufflist, targetbufflist) ) then
+									
+					--d("Cast Slot "..tostring(skill.slot))
+					cast = false
 					if ( skill.ttype == "Self" ) then
-						if ( Player:CastSpell(mc_skillmanager.cskills[currentSlot].slot) ) then
-							--d("Casting on Self: "..tostring(mc_skillmanager.cskills[currentSlot].name))
-							if (currentSlot ~= 1 ) then mc_skillmanager.prevSkillID = mc_skillmanager.cskills[currentSlot].skillID end
+						if ( Player:CastSpell(skill.slot) ) then							
+							cast = true
 							return true
 						end
 					else					
 						
-						if ( mc_skillmanager.cskills[currentSlot].isGroundTargeted ) then											
+						if ( mc_skillmanager.currentskills[prio].isGroundTargeted ) then
+							
 							if ( (target.isCharacter and target.movementstate == GW2.MOVEMENTSTATE.GroundNotMoving) or target.isGadget) then
-									if ( Player:CastSpell(mc_skillmanager.cskills[currentSlot].slot,TargetID) ) then
-									--d("Casting AE on Target: "..tostring(mc_skillmanager.cskills[currentSlot].name))
-									if (currentSlot ~= 1 ) then mc_skillmanager.prevSkillID = mc_skillmanager.cskills[currentSlot].skillID end
+							if ( Player:CastSpell(skill.slot,TargetID) ) then									
+									cast = true
 								end
 							else							
-								-- some simple movement prediction
-								-- TODO: add chilled modificator
-								local tpos = target.pos
-								tpos.x = tpos.x + tpos.hx * target.distance / 4.5
-								tpos.y = tpos.y + tpos.hy * target.distance / 4.5
-								
-								if ( Player:CastSpell(mc_skillmanager.cskills[currentSlot].slot,tpos.x,tpos.y,tpos.z) ) then
-									--d("Casting AE on moving Target: "..tostring(mc_skillmanager.cskills[currentSlot].name))
-									if (currentSlot ~= 1 ) then mc_skillmanager.prevSkillID = mc_skillmanager.cskills[currentSlot].skillID end
+								-- movement prediction
+								if ( mc_skillmanager.lastTarget.id and mc_skillmanager.lastTarget.id == TargetID and mc_skillmanager.lastTarget.pos) then
+									local tpos = target.pos
+									local pPos = Player.pos
+									local dx = tpos.x-mc_skillmanager.lastTarget.pos.x
+									local dy = tpos.y-mc_skillmanager.lastTarget.pos.y
+									local targetSpeed = math.sqrt(dx*dx + dy*dy)									
+									local targetHeading = math.atan2(dx, dy)
+																			
+									--d("Speed: " .. tostring(targetSpeed).." Heading "..tostring(targetHeading))
+									tpos.x = tpos.x + math.sin(targetHeading) * targetSpeed/5 * (1 + target.distance / 30)
+									tpos.y = tpos.y + math.cos(targetHeading) * targetSpeed/5 * (1 + target.distance / 30)
+									
+									local dist = Distance3D(pPos.x,pPos.y,pPos.z,tpos.x,tpos.y,tpos.z)
+									--d("Dist : "..tostring(dist))
+									if dist <= 1575 then											
+										Player:CastSpell(skill.slot,tpos.x,tpos.y,tpos.z) 
+										--d("Casting AE on moving Target (predicted pos): "..tostring(mc_skillmanager.currentskills[prio].name))
+										cast = true
+									else
+										--d("Predicted location was too far.")
+										if ( Player:CastSpell(skill.slot,tpos.x,tpos.y,tpos.z) ) then									
+											--d("Casting AE on moving Target: "..tostring(mc_skillmanager.currentskills[prio].name))
+											cast = true
+										end
+									end
+									
+								else
+									mc_skillmanager.lastTarget.id = TargetID									
 								end
+								mc_skillmanager.lastTarget.pos = target.pos
+																			
 							end									
 						else
-																	
-							if ( Player:CastSpell(mc_skillmanager.cskills[currentSlot].slot,TargetID) ) then
-								--d("Casting on Target: "..tostring(mc_skillmanager.cskills[currentSlot].name))
-								if (currentSlot ~= 1 ) then mc_skillmanager.prevSkillID = mc_skillmanager.cskills[currentSlot].skillID end															
+							if ( Player:CastSpell(skill.slot,TargetID) ) then
+								--d("Casting on Target: "..tostring(mc_skillmanager.currentskills[prio].name))
+								cast = true								
 							end									
+						end											
+					end
+					
+					if ( cast == true ) then
+						if (prio ~= 1 ) then mc_skillmanager.prevSkillID = mc_skillmanager.currentskills[prio].skillID end
+						mc_skillmanager.SkillProfile[prio].timelastused = mc_global.now
+						
+						if ( skill.casttime > 0 ) then							
+							mc_skillmanager.lastcastTmr = mc_global.now + skill.casttime
+						else
+							mc_skillmanager.lastcastTmr = mc_global.now
 						end
 						
-						-- If we hit this then we were not able to cast anything			
-						
-						if ( skill.channel == "1" ) then
-							-- Add a tiny delay so "iscasting" gets true for this spell, not interrupting it on the next pulse
-							mc_global.lasttick = mc_global.lasttick + 1000
-							return true
-						else										
-							fastcastcount = fastcastcount + 1 
-							if ( fastcastcount >= 2) then
-								
-								-- Swap Weapon check			
-								if ( mc_global.AttackRange < 300 and target.distance > mc_global.AttackRange ) then
-									mc_skillmanager.SwapWeaponCheck("Range")
-								else	 
-									mc_skillmanager.SwapWeaponCheck("CoolDown")
-								end
-								return true
-							end
+						if ( skill.slot == 5 ) then						
+							mc_skillmanager.SwapWeapCheck(target)
 						end						
-					end						
+						return true					
+					else
+						if ( skill.slot == 5 ) then
+							mc_skillmanager.SwapWeapCheck(target)
+						end
+					end
 				end				
 			end
 		end
+		mc_skillmanager.SwapWeapCheck(target)
 	end
 	return false
+end
+
+function mc_skillmanager.SwapWeapCheck( target )
+	-- Swap Weapon check
+	if ( ml_global_information.AttackRange < 300 and target.distance > ml_global_information.AttackRange ) then
+		mc_skillmanager.SwapWeaponCheck("Range")
+	else	 
+		mc_skillmanager.SwapWeaponCheck("CoolDown")
+	end	
 end
 
 function mc_skillmanager.HealMe()	
@@ -991,67 +1016,36 @@ function mc_skillmanager.HealMe()
 		end
 	end
 
+	-- Throttle to not cast too fast & interrupt channeling spells
+	if ( mc_global.now - mc_skillmanager.lastcastTmr < 250 ) then return false end
 	
 	--Valid Target?
-	local mybuffs = Player.buffs	
-	if ( mybuffs ) then
+	local playerbufflist = Player.buffs	
+	if ( playerbufflist ) then
 				
-		if ( TableSize(mc_skillmanager.SkillProfile) > 0 and Player:CanCast()) then
-			for prio,skill in pairs(mc_skillmanager.SkillProfile) do
+		if ( TableSize(mc_skillmanager.currentskills) > 0 and Player:CanCast() ) then -- disable CanCast for fastcasting here ?
+			mc_skillmanager.SwapWeaponCheck("Pulse")
+			
+			for prio,skill in pairs(mc_skillmanager.currentskills) do
 				
-				--Try to find a "healskill" in our current Skill List
-				local currentSlot = 0
-				for i = 1, 16, 1 do					
-					if ( mc_skillmanager.cskills[i] and mc_skillmanager.cskills[i].skillID == skill.skillID and mc_skillmanager.cskills[i].cooldown == 0 and skill.ttype == "Self" and skill.ooc ~= "No") then						
-						--d("Found Matching Skill, Cast Slot "..tostring(i) .. " Name "..tostring(mc_skillmanager.cskills[i].name))
-						currentSlot = i						
-						break
-					end
-				end
-				if ( currentSlot > 0 ) then
-					--d("Checking Conditions for Cast Slot "..tostring(currentSlot))
+				if (skill.ttype == "Self" and mc_skillmanager.CanCast( nil, skill , playerbufflist, nil) ) then
+					
+					if ( skill.ooc ~= "No" or (skill.ooc == "No" and ml_global_information.Player_InCombat == true ) ) then
+						if ( Player:CastSpell(skill.slot) ) then
+							--d("Cast Healing Slot "..tostring(skill.slot))					
+							--d("Casting on Self: "..tostring(mc_skillmanager.currentskills[prio].name))
+							if (prio ~= 1 ) then mc_skillmanager.prevSkillID = mc_skillmanager.currentskills[prio].skillID end
+							mc_skillmanager.SkillProfile[prio].timelastused = mc_global.now
 							
-					-- PLAYER HEALTH,POWER,ENDURANCE CHECK				
-					if ( (skill.phpl > 0 and skill.phpl > Player.health.percent)
-						or (skill.phpb > 0 and skill.phpb < Player.health.percent)
-						or (skill.ppowl > 0 and skill.ppowl > Player.power)
-						or (skill.ppowb > 0 and skill.ppowb < Player.power)
-						or (skill.pendl > 0 and skill.pendl > Player.endurance)
-						or (skill.pendb > 0 and skill.pendb < Player.endurance)					
-						) then continue end
-						
-					-- PLAYER BUFF AND CONDITION CHECKS
-					if ( skill.peff1 ~= "" and mybuffs )then 	
-						--Possible value in peff1: "134,245+123,552+123+531"
-						--d("Buffcheck : "..tostring(mc_helper.BufflistHasBuffs(mybuffs, skill.peff1)))
-						if ( not mc_helper.BufflistHasBuffs(mybuffs, skill.peff1) ) then continue end											
+							if ( skill.casttime > 0 ) then							
+								mc_skillmanager.lastcastTmr = mc_global.now + skill.casttime
+							else
+								mc_skillmanager.lastcastTmr = mc_global.now
+							end			
+							
+							return true
+						end
 					end
-					if ( skill.pneff1 ~= "" and mybuffs )then 	
-						--Possible value in pneff1: "134,245+123,552+123+531"
-						--d("Not Buffcheck : "..tostring(mc_helper.BufflistHasBuffs(mybuffs, skill.pneff1)))
-						if ( mc_helper.BufflistHasBuffs(mybuffs, skill.pneff1) ) then continue end
-					end						
-					if ( skill.pcondc > 0 and mybuffs ) then																		
-						if (CountConditions(mybuffs) <= skill.pcondc) then continue end								
-					end
-					if ( skill.pboonc > 0 and mybuffs ) then
-						if (CountBoons(mybuffs) <= skill.pboonc) then continue end						
-					end																		
-					 -- PREVIOUS SKILL					
-                    if ( mc_skillmanager.prevSkillID ~= 0 and skill.previd ~= "" ) then
-                        --d("Previous SkillID "..tostring(mc_skillmanager.prevSkillID))
-						if ( not StringContains(skill.previd, mc_skillmanager.prevSkillID) ) then continue end
-                    end
-					
-					
-					--d("Cast Slot "..tostring(currentSlot))
-					
-					if ( Player:CastSpell(mc_skillmanager.cskills[currentSlot].slot) ) then
-						--d("Casting on Self: "..tostring(mc_skillmanager.cskills[currentSlot].name))
-						if (currentSlot ~= 1 ) then mc_skillmanager.prevSkillID = mc_skillmanager.cskills[currentSlot].skillID end
-						mc_global.lasttick = mc_global.lasttick + 750
-						return true
-					end						
 				end				
 			end
 		end
@@ -1093,7 +1087,7 @@ function mc_skillmanager.SwapWeaponCheck(swaptype)
 	if ( mc_global.now - mc_skillmanager.SwapTmr > 750 ) then
 				
 		-- Swap after random Time (not used right now)
-		if ( swaptype == "Pulse" and gSMSwapR == "1" and (mc_global.now - mc_skillmanager.SwapRTmr > math.random(3000,6000))) then
+		if ( swaptype == "Pulse" and gSMSwapR == "1" and (mc_global.now - mc_skillmanager.SwapRTmr > math.random(4000,7000))) then
 			mc_skillmanager.SwapRTmr = mc_global.now
 			mc_skillmanager.SwapTmr = mc_global.now			
 			mc_skillmanager.SwapWeapon(swaptype)
@@ -1158,16 +1152,15 @@ function mc_skillmanager.SwapWeapon(swaptype)
 		
 	elseif( Player.profession == 3 ) then 		
 		-- Engineer	
-		local availableKits = { [1] = 0 }-- Leave Kit Placeholder
-		for i = 1, 16, 1 do
-			if (mc_skillmanager.cskills[i]) then 
-				--d(tostring(mc_skillmanager.cskills[i].skillID) .. " / "..tostring(mc_skillmanager.EngineerKits[mc_skillmanager.cskills[i].skillID]))
-				if ( mc_skillmanager.EngineerKits[mc_skillmanager.cskills[i].skillID] ~= nil and not Player:IsSpellOnCooldown(mc_skillmanager.cskills[i].slot)) then
-					if ( mc_skillmanager.SwapWeaponTable[mc_skillmanager.cskills[i].slot] == nil or (mc_global.now - mc_skillmanager.SwapWeaponTable[mc_skillmanager.cskills[i].slot].lastused or 0) > 1000) then
-						availableKits[#availableKits+1] = mc_skillmanager.cskills[i].slot												
-					end
-				end				
-			end
+		local availableKits = { [1] = 0 }-- Leave Kit Placeholder					
+		for prio,skill in pairsByKeys(mc_skillmanager.currentskills) do
+			--d(tostring(skill.skillID) .. " / "..tostring(mc_skillmanager.EngineerKits[skill.skillID]))
+			if ( mc_skillmanager.EngineerKits[skill.skillID] ~= nil and not Player:IsSpellOnCooldown(skill.slot)) then
+				if ( mc_skillmanager.SwapWeaponTable[skill.slot] == nil or (mc_global.now - mc_skillmanager.SwapWeaponTable[skill.slot].lastused or 0) > 1500) then
+					--d("ADDING: "..tostring(skill.skillID) .. " / "..tostring(mc_skillmanager.EngineerKits[skill.skillID]))
+					availableKits[#availableKits+1] = skill.slot												
+				end
+			end				
 		end		
 		local key = math.random(#availableKits)		
 		--d("MAx "..tostring(#availableKits).."..KEYSIZE "..tostring(#availableKits).. " choosen: "..tostring(key))
@@ -1175,14 +1168,14 @@ function mc_skillmanager.SwapWeapon(swaptype)
 		if ( key ~= 1 ) then
 			Player:CastSpell(availableKits[key])
 			if (gSMPrioKit ~= "None" and tostring(mc_skillmanager.EngineerKits[Player:GetSpellInfo(availableKits[key]).skillID]) ~= tostring(gSMPrioKit))then
-				--d(tostring(mc_skillmanager.EngineerKits[Player:GetSpellInfo(availableKits[key]).skillID]).." is not our priokit: "..tostring(gSMPrioKit).." extending time")
-				mc_skillmanager.SwapWeaponTable[availableKits[key]] = { lastused = mc_global.now + 5000 }
+				--d(tostring(mc_skillmanager.EngineerKits[Player:GetSpellInfo(availableKits[key]).skillID]).." is not our priokit: "..tostring(gSMPrioKit).." delaying next use")
+				mc_skillmanager.SwapWeaponTable[availableKits[key]] = { lastused = mc_global.now + 15000 }
 			else
 				mc_skillmanager.SwapWeaponTable[availableKits[key]] = { lastused = mc_global.now }
 			end
 		else			
 			if ( Player:CanSwapWeaponSet() ) then
-				if (gSMPrioKit == "None" or swaptype == "Pulse") then
+				if (gSMPrioKit == "None" or swaptype == "Pulse" or swaptype == "Range") then
 					Player:SwapWeaponSet()
 					mc_skillmanager.SwapTmr = mc_global.now
 				end
@@ -1196,119 +1189,6 @@ function mc_skillmanager.SwapWeapon(swaptype)
 		end
 	end	
 end
-
---[[ TEST THIS CODE!
-function SkillManager.GetTarget()
-    local id = Player:GetTarget()
-    if (id ~= nil) and (id ~= 0) then
-        if (CharacterList:Get(id) ~= nil) then
-            if (CharacterList:Get(id).attitude ~= 0) and (CharacterList:Get(id).attitude ~= 3) and (CharacterList:Get(id).healthstate ~= 1) then
-                SkillManager.Target = {id,CharacterList:Get(id)}
-                return
-            end
-        end
-    end
-    SkillManager.Target = {0,0}
-end
-
-function SkillManager.TargetSpeed()
-    local dx = SkillManager.LastX - SkillManager.Target[2].pos.x
-    local dy = SkillManager.LastY - SkillManager.Target[2].pos.y
-    return math.sqrt(dx*dx + dy*dy)
-end
-
-function SkillManager.PlayerSpeed()
-    if SkillManager.PLastX and SkillManager.PLastY then
-        local dx = SkillManager.PLastX - Player.pos.x
-        local dy = SkillManager.PLastY - Player.pos.y
-        d("Player Speed: " .. math.sqrt(dx*dx + dy*dy))
-    end
-    SkillManager.PLastX = Player.pos.x
-    SkillManager.PLastY = Player.pos.y
-end
-
-function SkillManager.MovementPrediction()
-    SkillManager.PredictX = SkillManager.Target[2].pos.x
-    SkillManager.PredictY = SkillManager.Target[2].pos.y
-    if (Antioch_TMP == "1") then
-        if (SkillManager.CurrentTarget == SkillManager.LastTarget) then -- We haven't changed targets
-            -- d("Unchanged target.")
-            if (SkillManager.Target[2].movementstate ~= 0) then -- Target is moving
-                local TargetHeading = math.atan2(SkillManager.Target[2].pos.hy, SkillManager.Target[2].pos.hx)
-                local TargetSpeed = SkillManager.TargetSpeed()
-                -- d("Speed: " .. TargetSpeed)
-                if (SkillManager.TargetSpeed() <= 65) then
-                    SkillManager.PredictX = SkillManager.Target[2].pos.x + math.cos(TargetHeading) * TargetSpeed * (1 + SkillManager.Target[2].distance / 100)
-                    SkillManager.PredictY = SkillManager.Target[2].pos.y + math.sin(TargetHeading) * TargetSpeed * (1 + SkillManager.Target[2].distance / 100)
-                    if Distance3D(Player.pos.x,Player.pos.y,Player.pos.z,SkillManager.PredictX,SkillManager.PredictY,SkillManager.Target[2].pos.z) <= 1575 then
-                        -- d("OldX: " .. SkillManager.Target[2].pos.x .. " NewX: " .. SkillManager.PredictX)
-                        -- d("OldY: " .. SkillManager.Target[2].pos.y .. " NewY: " .. SkillManager.PredictY)
-                    else
-                        -- d("Predicted location was too far.")
-                    end
-                else
-                    -- d("Target was too fast. Teleported?)
-                end
-            end
-        else
-            -- d("Switched targets.")
-        end
-    end
-    SkillManager.LastX = SkillManager.Target[2].pos.x
-    SkillManager.LastY = SkillManager.Target[2].pos.y
-    SkillManager.LastTarget = SkillManager.CurrentTarget
-end
-
-function SkillManager.GroundCombat()
-    SkillManager.GetTarget()
-    SkillManager.CurrentTarget = SkillManager.Target[1]
-    if (SkillManager.Target[1] ~= 0) then
-        if (SkillManager.Target[2].distance < 1575) then
-            SkillManager.Cast(7,38289) -- Equip Grenades
-            SkillManager.MovementPrediction()
-            local GroundTargetPos = {}
-            GroundTargetPos[1] = SkillManager.PredictX
-            GroundTargetPos[2] = SkillManager.PredictY
-            if (SkillManager.Target[2].los) or (SkillManager.Target[2].distance < 900) then
-                GroundTargetPos[3] = SkillManager.Target[2].pos.z
-            else
-                GroundTargetPos[3] = (SkillManager.Target[2].pos.z - math.random(50,100))
-            end
-            SkillManager.CastGround(1,168949,GroundTargetPos) -- Grenade
-            SkillManager.CastGround(3,126469,GroundTargetPos) -- Flash Grenade
-            SkillManager.CastGround(5,132338,GroundTargetPos) -- Poison Grenade
-            SkillManager.CastGround(2,132339,GroundTargetPos) -- Shrapnel Grenade
-            SkillManager.CastGround(12,37625,GroundTargetPos) -- Grenade Barrage
-            SkillManager.CastGround(4,83475,GroundTargetPos) -- Freeze Grenade
-            if (SkillManager.Target[2].distance <= 1200) and (SkillManager.Target[2].los == true) then -- These require LOS and 1200 distance
-                SkillManager.Cast(14,38554,SkillManager.Target[1]) -- Analyze
-                SkillManager.Cast(9,38393) -- Utility Goggles
-            end
-            return
-        end
-    else
-        local MyTargetID = Player:GetTarget()
-        if (MyTargetID ~= nil) and (MyTargetID ~= 0) then
-            SkillManager.AttackSiegeEquipment(MyTargetID)
-        end
-    end
-end
-
-function SkillManager.WaterCombat()
-    local id = Player:GetTarget()
-    if (id ~= nil) and (id ~= 0) then
-        SkillManager.Cast(7,38289) -- Equip Grenades
-        local info = CharacterList:Get(id)
-        if (info.attitude ~= 0) and (info.healthstate ~= 1) then
-            SkillManager.Cast(1,222355,id)
-            SkillManager.Cast(2,222359,id)
-            SkillManager.Cast(3,222363,id)
-            SkillManager.Cast(4,222365,id)
-            SkillManager.Cast(5,222371,id)
-        end
-    end
-end 
----]]
 
 
 RegisterEventHandler("SkillManager.toggle", mc_skillmanager.ToggleMenu)

@@ -40,9 +40,9 @@ function e_dead:execute()
 		end
 	end
 	
-	if ( found ) then
-		ml_log("Waiting for Players/Partymember to rezz me")
-	else	
+	--if ( found ) then
+	--	ml_log("Waiting for Players/Partymember to rezz me")
+	--else	
 	
 		if (mc_global.now - c_dead.deadTmr > 5000) then
 			local pHealth = Player.health
@@ -63,7 +63,7 @@ function e_dead:execute()
 				mc_ai_unstuck.Reset()
 			end
 		end
-	end
+	--end
 end
 
 
@@ -78,7 +78,7 @@ function e_downed:execute()
 	Player:StopMovement()
 	if ( Player:IsSpellOnCooldown( GW2.SKILLBARSLOT.Slot_4 ) ) then
 		-- Fight
-		local TList = ( CharacterList("lowesthealth,attackable,aggro,alive,los,maxdistance="..mc_global.AttackRange) )
+		local TList = ( CharacterList("lowesthealth,attackable,aggro,alive,los,maxdistance="..ml_global_information.AttackRange) )
 		if ( TableSize( TList ) > 0 ) then
 			local id, E  = next( TList )
 			if ( id ~= nil and id ~= 0 and E ~= nil ) then
@@ -97,7 +97,7 @@ function e_downed:execute()
 			end
 		end
 			
-		TList = ( GadgetList("attackable,alive,aggro,los,maxdistance="..mc_global.AttackRange) )
+		TList = ( GadgetList("attackable,alive,aggro,los,maxdistance="..ml_global_information.AttackRange) )
 		if ( TableSize( TList ) > 0 ) then
 			local id, E  = next( TList )
 			if ( id ~= nil and id ~= 0 and E ~= nil ) then

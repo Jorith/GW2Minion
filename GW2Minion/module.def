@@ -2,5 +2,5 @@
 Name=GW2Minion
 Dependencies=minionlib
 Version=1
-Files=mc_helper.lua,mc_main.lua,mc_blacklist.lua,mc_datamanager.lua,mc_skillmanager.lua,mc_ai_grind.lua,mc_ai_assist.lua,mc_ai_combat.lua,mc_ai_lootNgather.lua,mc_ai_death.lua,mc_ai_salvaging.lua,mc_ai_events.lua,mc_mesher.lua,mc_questmanager.lua,mc_ai_vendor.lua,mc_ai_unstuck.lua,mc_multibotmanager.lua,mc_ai_multibot.lua,mc_vendormanager.lua,mc_salvagemanager.lua,mc_meshrotation.lua,mc_ai_followbot.lua,mc_ai_exploration.lua,mc_radar.lua
+Files=mc_helper.lua,mc_main.lua,globals.lua,mc_blacklist.lua,mc_datamanager.lua,mc_skillmanager.lua,mc_ai_grind.lua,mc_ai_assist.lua,mc_ai_combat.lua,mc_ai_lootNgather.lua,mc_ai_death.lua,mc_ai_salvaging.lua,mc_ai_events.lua,mc_questmanager.lua,mc_ai_vendor.lua,mc_ai_unstuck.lua,mc_multibotmanager.lua,mc_ai_multibot.lua,mc_vendormanager.lua,mc_salvagemanager.lua,mc_meshrotation.lua,mc_ai_followbot.lua,mc_ai_exploration.lua,mc_radar.lua
 Enabled=1

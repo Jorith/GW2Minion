@@ -1,4 +1,5 @@
 mc_ai_unstuck = {}
+mc_ai_unstuck.enabled = true
 mc_ai_unstuck.stucktimer = 0
 mc_ai_unstuck.stuckcounter = 0
 mc_ai_unstuck.idletimer = 0
@@ -12,6 +13,8 @@ mc_ai_unstuck.Obstacles = {}
 mc_ai_unstuck.AvoidanceAreas = {}
 
 function mc_ai_unstuck:OnUpdate( tick )
+	
+	if ( not mc_ai_unstuck.enabled ) then return end	
 	
 	if ( Player.alive == false) then 
 		mc_ai_unstuck.Reset()

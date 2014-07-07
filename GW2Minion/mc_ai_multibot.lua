@@ -130,11 +130,11 @@ function e_dead_mb:execute()
 	end
 	
 	-- Check for nearby Players who can rezz us
-	if ( found == false ) then
-		if ( TableSize(CharacterList("nearest,alive,friendly,player,maxdistance=2500"))>0 ) then
-			found = true
-		end
-	end
+	--if ( found == false ) then
+	--	if ( TableSize(CharacterList("nearest,alive,friendly,player,maxdistance=2500"))>0 ) then
+	--		found = true
+	--	end
+	--end
 	
 	if ( found ) then
 		ml_log("Waiting for Players/Partymember to rezz me")
@@ -449,7 +449,7 @@ function e_SetAggroTarget_mb:execute()
 	end
 	
 	-- lowesthealth in CombatRange first	
-	local TList = ( CharacterList("lowesthealth,attackable,alive,aggro,onmesh,maxdistance="..mc_global.AttackRange) )
+	local TList = ( CharacterList("lowesthealth,attackable,alive,aggro,onmesh,maxdistance="..ml_global_information.AttackRange) )
 	if ( TableSize( TList ) > 0 ) then
 		local id, E  = next( TList )
 		if ( id ~= nil and id ~= 0 and E ~= nil ) then

@@ -9,7 +9,7 @@ script.Data = {}
 function script:UIInit( identifier )
 	GUI_NewField(ml_quest_mgr.stepwindow.name,"Interact Object ID",tostring(identifier).."InteractObject",GetString("questStepDetails"))
 	GUI_NewButton(ml_quest_mgr.stepwindow.name,"Set Object ID",tostring(identifier).."SetObjectID",GetString("questStepDetails"))
-		
+	GUI_NewField(ml_quest_mgr.stepwindow.name,"InteractDuration",tostring(identifier).."InteractDuration",GetString("questStepDetails"))
 end
 
 function script:SetData( identifier, tData )
@@ -19,6 +19,9 @@ function script:SetData( identifier, tData )
 		
 		if ( self.Data["InteractObject"] ) then
 		_G[tostring(identifier).."InteractObject"] = self.Data["InteractObject"]
+		end
+		if ( self.Data["InteractDuration"] ) then
+		_G[tostring(identifier).."InteractDuration"] = self.Data["InteractDuration"]
 		end
 	end
 end
@@ -172,6 +175,10 @@ end
 function script.e_Interact:execute()
 	ml_log("c_Interact")
 	d(Player:Interact(ml_task_hub:CurrentTask().Data["InteractObject"]))
+	local tdur = ml_task_hub:CurrentTask().Data["InteractDuration"]
+	if ( tonumber (tdur) ~= nil ) then
+		mc_global.Wait(tonumber(tdur))
+	end
 	ml_task_hub:CurrentTask().completed = true
 end	
 

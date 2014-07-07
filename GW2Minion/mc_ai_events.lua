@@ -435,7 +435,7 @@ e_SearchTargetEvent.PathThrottle = 0
 function e_SearchTargetEvent:execute()
 	ml_log("e_SearchTargetEvent")
 	-- Weakest Aggro in CombatRange first	
-	local TList = ( CharacterList("lowesthealth,attackable,alive,aggro,onmesh,maxdistance="..mc_global.AttackRange) )
+	local TList = ( CharacterList("lowesthealth,attackable,alive,aggro,onmesh,maxdistance="..ml_global_information.AttackRange) )
 	if ( TableSize( TList ) > 0 ) then
 		local id, E  = next( TList )
 		if ( id ~= nil and id ~= 0 and E ~= nil ) then
@@ -446,7 +446,7 @@ function e_SearchTargetEvent:execute()
 	end
 	
 	-- Then nearest attackable Gadget
-	local TList = ( GadgetList("nearest,attackable,alive,onmesh,maxdistance="..mc_global.AttackRange..",exclude_contentid="..mc_blacklist.GetExcludeString(GetString("monsters"))) )
+	local TList = ( GadgetList("nearest,attackable,alive,onmesh,maxdistance="..ml_global_information.AttackRange..",exclude_contentid="..mc_blacklist.GetExcludeString(GetString("monsters"))) )
 	if ( TableSize( TList ) > 0 ) then
 		local id, E  = next( TList )
 		if ( id ~= nil and id ~= 0 and E ~= nil ) then
@@ -463,7 +463,7 @@ function e_SearchTargetEvent:execute()
 		if ( TableSize( TList ) > 0 ) then
 			local id, E  = next( TList )
 			if ( id ~= nil and id ~= 0 and E ~= nil ) then
-				d("New Target: "..(E.name).." ID:"..tostring(id))
+				d("New Target ID"..tostring(id))
 				
 				-- Blacklist if we cant select it..happens sometimes when it is outside our select range
 				if (e_SearchTargetEvent.lastID == id ) then

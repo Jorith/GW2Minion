@@ -8,6 +8,9 @@ mc_global.lasttick = 0
 mc_global.running = false
 mc_global.BotModes = {}
 
+ml_global_information = { }
+ml_global_information.Now = 0
+
 mc_global.WorldMarkerType = 24 -- enum for "in current map", changes on larger patches sometimes
 
 
@@ -44,6 +47,17 @@ function mc_global.moduleinit()
 		Settings.GW2Minion.dDisableRender = "0"
 	end	
 	
+	if ( Settings.GW2Minion.gChatAlert == nil ) then
+		Settings.GW2Minion.gChatAlert = {
+			Whisper = "0",
+			Say = "0",
+			Info = "0",
+			God = "0",
+			Guild = "0",
+			Party = "0",
+		}
+	end
+	
 	-- MAIN WINDOW
 	GUI_NewWindow(mc_global.window.name,mc_global.window.x,mc_global.window.y,mc_global.window.width,mc_global.window.height)
 	GUI_NewButton(mc_global.window.name,GetString("startStop"),"mc_global.startStop")
@@ -66,7 +80,13 @@ function mc_global.moduleinit()
 	GUI_NewCheckbox(mc_global.window.name,GetString("skipcutscene"),"gSkipCutscene",GetString("settings"))
 	GUI_NewCheckbox(mc_global.window.name,GetString("gatherMode"),"gGather",GetString("settings"))
 	GUI_NewCheckbox(mc_global.window.name,GetString("revivecharacters"),"gRevive",GetString("settings"))
-
+	
+	GUI_NewCheckbox(mc_global.window.name,"Whisper","gChatAlertWhisper",GetString("checkChat"))
+	GUI_NewCheckbox(mc_global.window.name,"Say","gChatAlertSay",GetString("checkChat"))
+	GUI_NewCheckbox(mc_global.window.name,"Info","gChatAlertInfo",GetString("checkChat"))
+	GUI_NewCheckbox(mc_global.window.name,"God","gChatAlertGod",GetString("checkChat"))
+	GUI_NewCheckbox(mc_global.window.name,"Guild","gChatAlertGuild",GetString("checkChat"))
+	GUI_NewCheckbox(mc_global.window.name,"Party","gChatAlertParty",GetString("checkChat"))	
 	
 	GUI_NewButton(mc_global.window.name, GetString("advancedSettings"), "AdvancedSettings.toggle")
 	RegisterEventHandler("AdvancedSettings.toggle", mc_global.ToggleAdvMenu)
@@ -79,7 +99,7 @@ function mc_global.moduleinit()
 	GUI_NewButton(mc_global.advwindow.name, GetString("questManager"), "QuestManager.toggle")	
 	GUI_NewButton(mc_global.advwindow.name, GetString("skillManager"), "SkillManager.toggle")
 	GUI_NewButton(mc_global.advwindow.name, GetString("maprotation"), "MapRotation.toggle")
-	GUI_NewButton(mc_global.advwindow.name, GetString("meshManager"), "ToggleMeshmgr")
+	GUI_NewButton(mc_global.advwindow.name, GetString("meshManager"), "ToggleMeshManager")
 		
 	GUI_WindowVisible(mc_global.advwindow.name,false)
 	
@@ -124,25 +144,122 @@ function mc_global.moduleinit()
 	gSkipCutscene = Settings.GW2Minion.gSkipCutscene
 	gGather = Settings.GW2Minion.gGather
 	gRevive = Settings.GW2Minion.gRevive
-	dDisableRender = Settings.GW2Minion.dDisableRender
-	RenderManager:ToggleRendering(tonumber(dDisableRender))
-	GUI_UnFoldGroup(mc_global.window.name,GetString("botStatus") );		
+	gChatAlertWhisper = Settings.GW2Minion.gChatAlert.Whisper
+	gChatAlertSay = Settings.GW2Minion.gChatAlert.Say
+	gChatAlertInfo = Settings.GW2Minion.gChatAlert.Info
+	gChatAlertGod = Settings.GW2Minion.gChatAlert.God
+	gChatAlertGuild = Settings.GW2Minion.gChatAlert.Guild
+	gChatAlertParty = Settings.GW2Minion.gChatAlert.Party
+
+	if ( RenderManager ) then
+		RenderManager:ToggleRendering(tonumber(dDisableRender))
+	end
+	GUI_UnFoldGroup(mc_global.window.name,GetString("botStatus") );
+	
+-- setup marker manager callbacks and vars
+	if ( ml_marker_mgr ) then
+		ml_marker_mgr.GetPosition = 	function () return ml_global_information.Player_Position end
+		ml_marker_mgr.GetLevel = 		function () return ml_global_information.Player_Level end
+		ml_marker_mgr.DrawMarker =		ml_globals.DrawMarker
+		ml_marker_mgr.parentWindow = { Name="MinionBot" }
+		ml_marker_mgr.markerPath = mc_global.path.. [[\Navigation\]]
+		
+	end
+	
+-- setup meshmanager
+	if ( ml_mesh_mgr ) then
+		ml_mesh_mgr.parentWindow.Name = "MinionBot"
+		ml_mesh_mgr.GetMapID = function () return ml_global_information.CurrentMapID end
+		ml_mesh_mgr.GetMapName = function () return ml_global_information.CurrentMapName end
+		ml_mesh_mgr.GetPlayerPos = function () return ml_global_information.Player_Position end
+		ml_mesh_mgr.averagegameunitsize = 50
+		
+		-- Set default meshes SetDefaultMesh(mapid, filename)
+		ml_mesh_mgr.SetDefaultMesh(17,"Harathi Hinterlands")
+			
+		ml_mesh_mgr.SetDefaultMesh(19,"PlainsOfAshford")
+		ml_mesh_mgr.SetDefaultMesh(20,"BlazzeridgeSteppes")
+		ml_mesh_mgr.SetDefaultMesh(22,"FireHeartRise")
+				
+		ml_mesh_mgr.SetDefaultMesh(25,"IronMarches")
+		ml_mesh_mgr.SetDefaultMesh(26,"Dredgehaunt Cliffs")
+		ml_mesh_mgr.SetDefaultMesh(27,"LonarsPass")
+		ml_mesh_mgr.SetDefaultMesh(28,"Wayfarer Foothills")		
+		ml_mesh_mgr.SetDefaultMesh(29,"TimberlineFalls")
+		ml_mesh_mgr.SetDefaultMesh(30,"FrostGorge Sound")
+		
+		ml_mesh_mgr.SetDefaultMesh(32,"DiessaPlateau")
+		ml_mesh_mgr.SetDefaultMesh(34,"Caledon Forest")
+		ml_mesh_mgr.SetDefaultMesh(35,"MetricaProvince")
+		ml_mesh_mgr.SetDefaultMesh(39,"MountMaelstrom")
+		
+		ml_mesh_mgr.SetDefaultMesh(53,"Sparkfly Fen")
+		ml_mesh_mgr.SetDefaultMesh(73,"BloodtideCoast")
+				
+		-- Setup the marker types we wanna use
+		   --[[ local mapMarker = ml_marker:Create("MapMarker")
+			mapMarker:SetType(GetString("mapMarker"))
+			mapMarker:SetMinLevel(1)
+			mapMarker:SetMaxLevel(50)
+			mapMarker:AddField("int", "Target MapID", 0)			
+			ml_marker_mgr.AddMarkerTemplate(mapMarker)			
+			
+			local vendorMarker = ml_marker:Create("vendorTemplate")
+			vendorMarker:SetType(GetString("vendorMarker"))
+			vendorMarker:SetMinLevel(1)
+			vendorMarker:SetMaxLevel(50)
+			ml_marker_mgr.AddMarkerTemplate(vendorMarker)--]]
+			
+			
+			-- refresh the manager with the new templates
+			ml_marker_mgr.RefreshMarkerTypes()
+			ml_marker_mgr.RefreshMarkerNames()
+				
+		ml_mesh_mgr.InitMarkers() -- Update the Markers-group in the mesher UI
+	end
+	
+-- setup blacklists
+	if ( ml_blacklist_mgr ) then
+		ml_blacklist_mgr.parentWindow = { Name="MinionBot" }
+		
+	end
+	
 end
 
 function mc_global.onupdate( event, tickcount )
 	mc_global.now = tickcount
+	ml_global_information.Now = tickcount
 	
-	if ( mc_global.running ) then		
-		if ( tickcount - mc_global.lasttick > tonumber(gPulseTime) ) then
-			mc_global.lasttick = tickcount
+	-- Update Variables
+	if ( tickcount - mc_global.lasttick > tonumber(gPulseTime) ) then
+		mc_global.lasttick = tickcount
+		
+		-- Update global variables
+		ml_globals.UpdateGlobals()
 			
-			-- Update global variables
-			mc_global.UpdateGlobals()
-			
+		-- Mesher OnUpdate
+		ml_mesh_mgr.OnUpdate( tickcount )
+		
+		-- SkillManager OnUpdate
+		mc_skillmanager.OnUpdate( tickcount )
+		
+		-- PartyManager OnUpdate
+		mc_multibotmanager.OnUpdate( tickcount )
+		
+		-- BlackList OnUpdate
+		mc_blacklist.OnUpdate( tickcount )
+		
+		-- FollowBot OnUpdate
+		mc_followbot.OnUpdate( tickcount )
+	
+		-- ChatMonitor OnUpdate
+		mc_global.ChatMonitor( tickcount )
+		
+		if ( mc_global.running ) then		
 			
 			-- Let the bot tick ;)
 			if ( mc_global.BotModes[gBotMode] ) then
-												
+													
 				if( ml_task_hub:CurrentTask() ~= nil) then
 					ml_log(ml_task_hub:CurrentTask().name.." :")
 				end
@@ -153,48 +270,37 @@ function mc_global.onupdate( event, tickcount )
 					end
 					
 					if (not ml_task_hub:Update() ) then
-						ml_error("No task queued, please select a valid bot mode in the Settings drop-down menu")
+							ml_error("No task queued, please select a valid bot mode in the Settings drop-down menu")
 					end
 				end
 				
 				-- Unstuck OnUpdate
 				mc_ai_unstuck:OnUpdate( tickcount )
-											
-				GUI_SetStatusBar(ml_GetTraceString())
+				
+			end
+		
+		elseif ( mc_global.running == false and gAutostartbot == "1" ) then
+			mc_global.togglebot(1)
+		else
+			if ( tickcount - mc_global.lasttick > tonumber(gPulseTime) ) then
+				mc_global.lasttick = tickcount
+				ml_log("BOT: Not Running")
 			end
 		end
-	
-	elseif ( mc_global.running == false and gAutostartbot == "1" ) then
-		mc_global.togglebot(1)
-	else
-		GUI_SetStatusBar("BOT: Not Running")
+		GUI_SetStatusBar(ml_GetTraceString())
 	end
-	
-	-- Mesher OnUpdate
-	mm.OnUpdate( tickcount )
-		
-	-- SkillManager OnUpdate
-	mc_skillmanager.OnUpdate( tickcount )
-	
-	-- PartyManager OnUpdate
-	mc_multibotmanager.OnUpdate( tickcount )
-	
-	-- BlackList OnUpdate
-	mc_blacklist.OnUpdate( tickcount )
-	
-	-- FollowBot OnUpdate
-	mc_followbot.OnUpdate( tickcount )
 end
 
 mc_global.Charscreen_lastrun = 0
 function mc_global.OnUpdateCharSelect(event, tickcount )
-	GUI_SetStatusBar("In Characterscreen...Autostart Bot: "..tostring(gAutostartbot).. ", (Guest)Server: "..tostring(gGuestServer))
+	
 	mc_global.now = tickcount
 	if (mc_global.Charscreen_lastrun == 0) then
 		mc_global.Charscreen_lastrun = tickcount
 	elseif ( gAutostartbot == "1" and tickcount - mc_global.Charscreen_lastrun > 2500) then
 		mc_global.Charscreen_lastrun = tickcount
 		
+		GUI_SetStatusBar("In Characterscreen...Autostart Bot: "..tostring(gAutostartbot).. ", (Guest)Server: "..tostring(gGuestServer))
 		
 		if ( gGuestServer ~= nil and gGuestServer ~= "None" ) then
 			local serverlist = {}
@@ -236,7 +342,71 @@ function mc_global.OnUpdateCutscene(event, tickcount )
 	end
 end
 
-
+-- parses the chat in order to play a warning signal when a whisper etc comes in
+ml_global_information.chatmonitortmr = 0
+mc_global.whispers = {}
+function mc_global.ChatMonitor( tickcount )
+	if ( tickcount - ml_global_information.chatmonitortmr > 5000 ) then
+		ml_global_information.chatmonitortmr = tickcount
+		if ( gChatAlertWhisper == "1" ) then
+			local NewWhisper = GetChatMsg(GW2.CHATCHANNEL.Whisper, 100)
+			if ( TableSize(NewWhisper) > 0 ) then
+				if ( mc_global.whispers[GW2.CHATCHANNEL.Whisper] ~= nil and mc_global.whispers[GW2.CHATCHANNEL.Whisper] ~= NewWhisper[1]) then
+					PlaySound(mc_global.path.."\\MinionFiles\\Sounds\\Alarm1.wav")
+				end
+				mc_global.whispers[GW2.CHATCHANNEL.Whisper] = NewWhisper[1]
+			end
+		end
+		if ( gChatAlertSay == "1" ) then
+			local NewWhisper = GetChatMsg(GW2.CHATCHANNEL.Say, 100)
+			if ( TableSize(NewWhisper) > 0 ) then
+				if ( mc_global.whispers[GW2.CHATCHANNEL.Say] ~= nil and mc_global.whispers[GW2.CHATCHANNEL.Say] ~= NewWhisper[1]) then
+					PlaySound(mc_global.path.."\\MinionFiles\\Sounds\\Alarm1.wav")
+				end
+				mc_global.whispers[GW2.CHATCHANNEL.Say] = NewWhisper[1]
+			end
+		end
+		if ( gChatAlertInfo == "1" ) then
+			local NewWhisper = GetChatMsg(GW2.CHATCHANNEL.Info, 100)
+			if ( TableSize(NewWhisper) > 0 ) then
+				if ( mc_global.whispers[GW2.CHATCHANNEL.Info] ~= nil and mc_global.whispers[GW2.CHATCHANNEL.Info] ~= NewWhisper[1]) then
+					PlaySound(mc_global.path.."\\MinionFiles\\Sounds\\Alarm1.wav")
+					d("Info Alert!")
+				end
+				mc_global.whispers[GW2.CHATCHANNEL.Info] = NewWhisper[1]
+			end
+		end	
+		if ( gChatAlertGod == "1" ) then
+			local NewWhisper = GetChatMsg(GW2.CHATCHANNEL.God, 100)
+			if ( TableSize(NewWhisper) > 0 ) then
+				if ( mc_global.whispers[GW2.CHATCHANNEL.God] ~= nil and mc_global.whispers[GW2.CHATCHANNEL.God] ~= NewWhisper[1]) then
+					PlaySound(mc_global.path.."\\MinionFiles\\Sounds\\Alarm1.wav")
+					d("God Alert!")
+				end
+				mc_global.whispers[GW2.CHATCHANNEL.God] = NewWhisper[1]
+			end
+		end	
+		if ( gChatAlertGuild == "1" ) then
+			local NewWhisper = GetChatMsg(GW2.CHATCHANNEL.Guild, 100)
+			if ( TableSize(NewWhisper) > 0 ) then
+				if ( mc_global.whispers[GW2.CHATCHANNEL.Guild] ~= nil and mc_global.whispers[GW2.CHATCHANNEL.Guild] ~= NewWhisper[1]) then
+					PlaySound(mc_global.path.."\\MinionFiles\\Sounds\\Alarm1.wav")					
+				end
+				mc_global.whispers[GW2.CHATCHANNEL.Guild] = NewWhisper[1]
+			end
+		end	
+		if( gChatAlertParty == "1" ) then
+			local NewWhisper = GetChatMsg(GW2.CHATCHANNEL.Party, 100)
+			if ( TableSize(NewWhisper) > 0 ) then
+				if ( mc_global.whispers[GW2.CHATCHANNEL.Party] ~= nil and mc_global.whispers[GW2.CHATCHANNEL.Party] ~= NewWhisper[1]) then
+					PlaySound(mc_global.path.."\\MinionFiles\\Sounds\\Alarm1.wav")
+				end
+				mc_global.whispers[GW2.CHATCHANNEL.Party] = NewWhisper[1]
+			end
+		end	
+	end
+end
+	
 function mc_global.eventhandler(arg)
 	if ( arg == "mc_global.startStop" or arg == "GW2MINION.toggle") then
 		if ( gBotRunning == "1" ) then
@@ -279,8 +449,8 @@ function mc_global.guivarupdate(Event, NewVals, OldVals)
 			mc_global.togglebot(v)			
 		elseif ( k == "gBotMode") then        
 			Settings.GW2Minion[tostring(k)] = v
-			mc_global.UpdateMode()
-			mm.NavMeshUpdate()
+			--mc_global.UpdateMode()
+			--mm.NavMeshUpdate()
 		elseif ( k == "gMultiBotEnabled" ) then
 			if ( v == "0" ) then							
 				MultiBotDisconnect()				
@@ -289,6 +459,13 @@ function mc_global.guivarupdate(Event, NewVals, OldVals)
 		elseif ( k == "dDisableRender") then
 			RenderManager:ToggleRendering(tonumber(v))
 			Settings.GW2Minion[tostring(k)] = v
+		elseif ( k == "gChatAlertWhisper") then Settings.GW2Minion.gChatAlert.Whisper = v Settings.GW2Minion.gChatAlert = Settings.GW2Minion.gChatAlert
+		elseif ( k == "gChatAlertSay") then Settings.GW2Minion.gChatAlert.Say = v Settings.GW2Minion.gChatAlert = Settings.GW2Minion.gChatAlert
+		elseif ( k == "gChatAlertInfo") then Settings.GW2Minion.gChatAlert.Info = v Settings.GW2Minion.gChatAlert = Settings.GW2Minion.gChatAlert
+		elseif ( k == "gChatAlertGod") then Settings.GW2Minion.gChatAlert.God = v Settings.GW2Minion.gChatAlert = Settings.GW2Minion.gChatAlert
+		elseif ( k == "gChatAlertGuild") then Settings.GW2Minion.gChatAlert.Guild = v Settings.GW2Minion.gChatAlert = Settings.GW2Minion.gChatAlert
+		elseif ( k == "gChatAlertParty") then Settings.GW2Minion.gChatAlert.Party = v Settings.GW2Minion.gChatAlert = Settings.GW2Minion.gChatAlert
+		
 		end
 	end
 	GUI_RefreshWindow(mc_global.window.name)
@@ -323,15 +500,6 @@ function mc_global.togglebot(arg)
 	end
 end
 
-function mc_global.UpdateGlobals()
-	mc_global.AttackRange = mc_skillmanager.GetAttackRange()
-	
-	
-	
-	-- Update Debug fields	
-	dAttackRange = mc_global.AttackRange	
-end
-
 function mc_global.ResetBot()
 	mc_ai_vendor.isSelling = false
 	mc_ai_vendor.isBuying = false
@@ -341,6 +509,8 @@ end
 
 function mc_global.Wait( seconds ) 
 	mc_global.lasttick = mc_global.lasttick + seconds
+	-- extend unstucktimers
+	mc_ai_unstuck.idletimer = mc_ai_unstuck.idletimer + seconds
 end
 
 function mc_global.ToggleAdvMenu()
@@ -355,9 +525,38 @@ function mc_global.ToggleAdvMenu()
     end
 end
 
+-- gets called after a new navmesh was loaded successfully
+function mc_global.NavMeshUpdate()
+	mc_datamanager.UpdateLevelMap()
+	
+	-- try loading questprofile
+	if ( gBotMode == GetString("grindMode") or gBotMode == GetString("exploreMode")) then
+		local mapname = mc_datamanager.GetMapName( Player:GetLocalMapID())
+		if ( mapname ~= nil and mapname ~= "" and mapname ~= "none" ) then
+			mapname = mapname:gsub('%W','') -- only alphanumeric
+			if ( mapname ~= nil and mapname ~= "" ) then
+				gQMprofile = mapname
+				ml_quest_mgr.UpdateCurrentProfileData()
+			end
+		end
+	end
+	
+	if ( TableSize(ml_quest_mgr.QuestList) == 0 and (gBotMode == GetString("grindMode") or gBotMode == GetString("exploreMode"))) then
+		mc_questmanager.GenerateMapExploreProfile()
+	end
+	
+	mc_global.ResetBot()
+	if ( Maprotation_Active == "1") then
+		ml_task_hub:ClearQueues()
+	end
+	mc_global.UpdateMode()	
+
+end
+
 RegisterEventHandler("Module.Initalize",mc_global.moduleinit)
 RegisterEventHandler("Gameloop.Update",mc_global.onupdate)
 RegisterEventHandler("GUI.Update",mc_global.guivarupdate)
 RegisterEventHandler("Gameloop.CharSelectUpdate",mc_global.OnUpdateCharSelect)
 RegisterEventHandler("Gameloop.CutsceneUpdate",mc_global.OnUpdateCutscene)
 RegisterEventHandler("GW2MINION.toggle", mc_global.eventhandler)
+RegisterEventHandler("Gameloop.MeshReady",mc_global.NavMeshUpdate)

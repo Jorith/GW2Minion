@@ -112,7 +112,9 @@ function ml_quest_mgr.ModuleInit( name , path)
 	
 	
 	ml_quest_mgr.UpdateProfiles() -- Update the profiles dropdownlist 
-	ml_quest_mgr.UpdateCurrentProfileData()	
+	if ( Player ) then
+		ml_quest_mgr.UpdateCurrentProfileData()	
+	end
 end
 
 function ml_quest_mgr.UpdateCurrentProfileData()

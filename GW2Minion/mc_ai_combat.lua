@@ -200,7 +200,7 @@ e_SearchTarget.count = 0
 function e_SearchTarget:execute()
 	ml_log("e_SearchTarget")
 	-- Weakest Aggro in CombatRange first	
-	local TList = ( CharacterList("lowesthealth,attackable,alive,aggro,onmesh,maxdistance="..mc_global.AttackRange) )
+	local TList = ( CharacterList("lowesthealth,attackable,alive,aggro,onmesh,maxdistance="..ml_global_information.AttackRange) )
 	if ( TableSize( TList ) > 0 ) then
 		local id, E  = next( TList )
 		if ( id ~= nil and id ~= 0 and E ~= nil ) then
@@ -210,7 +210,7 @@ function e_SearchTarget:execute()
 	end
 	
 	-- Then nearest attackable Gadget
-	local TList = ( GadgetList("nearest,attackable,alive,onmesh,maxdistance="..mc_global.AttackRange..",exclude_contentid="..mc_blacklist.GetExcludeString(GetString("monsters"))) )
+	local TList = ( GadgetList("nearest,attackable,alive,onmesh,maxdistance="..ml_global_information.AttackRange..",exclude_contentid="..mc_blacklist.GetExcludeString(GetString("monsters"))) )
 	if ( TableSize( TList ) > 0 ) then
 		local id, E  = next( TList )
 		if ( id ~= nil and id ~= 0 and E ~= nil ) then
@@ -224,7 +224,7 @@ function e_SearchTarget:execute()
 	if ( TableSize( TList ) > 0 ) then
 		local id, E  = next( TList )
 		if ( id ~= nil and id ~= 0 and E ~= nil ) then
-			d("New Target: "..(E.name).." ID:"..tostring(id))
+			d("New Target ID:"..tostring(id))
 			
 			-- Blacklist if we cant select it..happens sometimes when it is outside our select range
 			if (e_SearchTarget.lastID == id ) then
@@ -399,11 +399,11 @@ function e_SetAggroTarget:execute()
 	ml_log("e_SetAggroTarget")
 	
 	-- lowesthealth in CombatRange first	
-	local TList = ( CharacterList("lowesthealth,attackable,alive,aggro,onmesh,maxdistance="..mc_global.AttackRange) )
+	local TList = ( CharacterList("lowesthealth,attackable,alive,aggro,onmesh,maxdistance="..ml_global_information.AttackRange) )
 	if ( TableSize( TList ) > 0 ) then
 		local id, E  = next( TList )
 		if ( id ~= nil and id ~= 0 and E ~= nil ) then
-			d("New Aggro Target: "..tostring(E.name).." ID:"..tostring(id))
+			d("New Aggro Target ID:"..tostring(id))
 			Player:SetTarget(id)
 			return ml_log(true)	
 		end		
@@ -414,7 +414,7 @@ function e_SetAggroTarget:execute()
 	if ( TableSize( TList ) > 0 ) then
 		local id, E  = next( TList )
 		if ( id ~= nil and id ~= 0 and E ~= nil ) then
-			d("New Aggro Target: "..tostring(E.name).." ID:"..tostring(id))
+			d("New Aggro Target ID:"..tostring(id))
 			Player:SetTarget(id)
 			return ml_log(true)	
 		end		
@@ -430,7 +430,7 @@ function c_MoveIntoCombatRange:evaluate()
     --ml_log("c_MoveIntoCombRng")
     local t = Player:GetTarget()
 	if ( t and Player.swimming == 0 ) then		
-		if (t.distance >= mc_global.AttackRange or (t.isCharacter and not t.los) or (t.isGadget and not t.los and t.distance > mc_global.AttackRange) or (t.isGadget and not t.los and t.distance > 350)) then
+		if (t.distance >= ml_global_information.AttackRange or (t.isCharacter and not t.los) or (t.isGadget and not t.los and t.distance > ml_global_information.AttackRange) or (t.isGadget and not t.los and t.distance > 350)) then
 			return true
 		else
 			if ( c_MoveIntoCombatRange.running ) then 
@@ -448,7 +448,7 @@ function e_MoveIntoCombatRange:execute()
 	ml_log("e_MoveIntoCombRng")
 	local t = Player:GetTarget()
 	if ( t ) then	
-		if ( t.distance >= mc_global.AttackRange or not t.los)then
+		if ( t.distance >= ml_global_information.AttackRange or not t.los)then
 			local tPos = t.pos
 			-- moveto(x,y,z,stoppingdistance,navsystem(normal/follow),navpath(straight/random),smoothturns)		
 			if ( tPos ) then
@@ -479,7 +479,7 @@ e_KillTarget = inheritsFrom( ml_effect )
 e_KillTarget.lastID = 0
 e_KillTarget.lastHP = 0
 e_KillTarget.Tmr = 0
-function c_KillTarget()
+function c_KillTarget:evaluate()
 	return Player.swimming == 0
 end
 function e_KillTarget:execute()
@@ -811,13 +811,13 @@ function DoCombatMovement()
 				end
 				
 				if (tonumber(Tdist) ~= nil) then
-					if (mc_global.AttackRange > 300) then
+					if (ml_global_information.AttackRange > 300) then
 						-- RANGE
-						if (Tdist < (mc_global.AttackRange / 2) and movedir.forward ) then -- we are too close and moving towards enemy
+						if (Tdist < (ml_global_information.AttackRange / 2) and movedir.forward ) then -- we are too close and moving towards enemy
 							Player:UnSetMovement(0)	-- stop moving forward
-						elseif ( Tdist > mc_global.AttackRange and movedir.backward ) then -- we are too far away and moving backwards
+						elseif ( Tdist > ml_global_information.AttackRange and movedir.backward ) then -- we are too far away and moving backwards
 							Player:UnSetMovement(1)	-- stop moving backward
-						elseif (Tdist > mc_global.AttackRange and (movedir.left or movedir.right)) then -- we are strafing outside the maxrange
+						elseif (Tdist > ml_global_information.AttackRange and (movedir.left or movedir.right)) then -- we are strafing outside the maxrange
 							if ( movedir.left ) then
 								Player:UnSetMovement(2) -- stop moving Left
 							elseif( movedir.right) then
@@ -828,9 +828,9 @@ function DoCombatMovement()
 						-- MELEE
 						if ( Tdist < 85 and movedir.forward) then -- we are too close and moving towards enemy
 							Player:UnSetMovement(0)	-- stop moving forward
-						elseif (Tdist > mc_global.AttackRange and movedir.backward) then -- we are too far away and moving backwards
+						elseif (Tdist > ml_global_information.AttackRange and movedir.backward) then -- we are too far away and moving backwards
 							Player:UnSetMovement(1)	-- stop moving backward
-						elseif ((Tdist > mc_global.AttackRange + 50 or Tdist < 50) and (movedir.left or movedir.right)) then -- we are strafing outside the maxrange
+						elseif ((Tdist > ml_global_information.AttackRange + 50 or Tdist < 50) and (movedir.left or movedir.right)) then -- we are strafing outside the maxrange
 							if ( movedir.left ) then
 								Player:UnSetMovement(2) -- stop moving Left
 							elseif( movedir.right) then
@@ -849,10 +849,10 @@ function DoCombatMovement()
 				--tablecount:  1, 2, 3, 4, 5   --Table index starts at 1, not 0 
 				local dirs = { 0, 1, 2, 3, 4 } --Forward = 0, Backward = 1, Left = 2, Right = 3, + stop
 				
-				if (mc_global.AttackRange > 300 ) then
+				if (ml_global_information.AttackRange > 300 ) then
 					-- RANGE
-					if (Tdist < mc_global.AttackRange ) then
-						if (Tdist > (mc_global.AttackRange * 0.90)) then 
+					if (Tdist < ml_global_information.AttackRange ) then
+						if (Tdist > (ml_global_information.AttackRange * 0.90)) then 
 							table.remove(dirs,2) -- We are too far away to walk backward
 						end
 						if (Tdist < 600) then 
@@ -871,7 +871,7 @@ function DoCombatMovement()
 					
 				else
 					-- MELEE
-					if (Tdist < mc_global.AttackRange ) then
+					if (Tdist < ml_global_information.AttackRange ) then
 						if (Tdist > 200) then 
 							table.remove(dirs,2) -- We are too far away to walk backwards
 						end
@@ -946,7 +946,7 @@ function c_SearchAndKillNearby:evaluate()
 	if ( target == nil ) then
 		
 		-- Then nearest attackable Gadget
-		local TList = ( GadgetList("nearest,attackable,alive,onmesh,maxdistance="..mc_global.AttackRange..",exclude_contentid="..mc_blacklist.GetExcludeString(GetString("monsters"))) )
+		local TList = ( GadgetList("nearest,attackable,alive,onmesh,maxdistance="..ml_global_information.AttackRange..",exclude_contentid="..mc_blacklist.GetExcludeString(GetString("monsters"))) )
 		if ( TableSize( TList ) > 0 ) then
 			local id, E  = next( TList )
 			if ( id ~= nil and id ~= 0 and E ~= nil ) then
@@ -993,7 +993,7 @@ function e_SearchAndKillNearby:execute()
 	if ( t ) then
 		local tPos = t.pos
 		
-		if ( t.distance >= mc_global.AttackRange or not t.los)then			
+		if ( t.distance >= ml_global_information.AttackRange or not t.los)then			
 			-- moveto(x,y,z,stoppingdistance,navsystem(normal/follow),navpath(straight/random),smoothturns)		
 			if ( tPos ) then
 				--d("MoveIntoCombatRange..Running")

@@ -3,7 +3,7 @@
 mc_ai_vendor = {}
 mc_ai_vendor.tmr = 0
 mc_ai_vendor.threshold = 2000
-
+mc_ai_vendor.vendorThrottleTmr = 0
 
 --************
 -- SELLING 
@@ -239,29 +239,33 @@ function e_vendorsell:execute()
 	return ml_log(false)		
 end
 function mc_ai_vendor.SellAtVendor( vendor , nearbyvendor)
-	-- Sell stuff	
-	if ( mc_ai_vendor.NeedToSell() or ( nearbyvendor and mc_ai_vendor.NeedToSell( true ) )) then
-		if ( not Inventory:IsVendorOpened() and Player:IsConversationOpen() ) then
-			if ( not mc_ai_vendor.OpenSellWindow() ) then
-				ml_error( "Vendoring: can't Sell at vendor, please report back to the developers" )
-				ml_error("Blacklisted Sell-Vendor"..vendor.name)
-				mc_blacklist.AddBlacklistEntry(GetString("vendors"), vendor.id, vendor.name, true)	
-			end
-		else
-			-- SELL HERE
-			local sList = mc_vendormanager.createItemList()
-			if ( TableSize(sList) > 0 ) then
-				local i,item = next (sList)
-				if ( i and item ) then
-					mc_ai_vendor.isSelling = true
-					d("Selling :"..tostring(item.name))
-					item:Sell()
-					return
-				end				
+	-- Sell stuff
+	
+	if ( mc_global.now - mc_ai_vendor.vendorThrottleTmr > 500 ) then
+		mc_ai_vendor.vendorThrottleTmr = mc_global.now
+		if ( mc_ai_vendor.NeedToSell() or ( nearbyvendor and mc_ai_vendor.NeedToSell( true ) )) then
+			if ( not Inventory:IsVendorOpened() and Player:IsConversationOpen() ) then
+				if ( not mc_ai_vendor.OpenSellWindow() ) then
+					ml_error( "Vendoring: can't Sell at vendor, please report back to the developers" )
+					ml_error("Blacklisted Sell-Vendor"..vendor.name)
+					mc_blacklist.AddBlacklistEntry(GetString("vendors"), vendor.id, vendor.name, true)	
+				end
 			else
-				d("Selling finished..")				
-				Inventory:SellJunk()
-				mc_ai_vendor.isSelling = false				
+				-- SELL HERE
+				local sList = mc_vendormanager.createItemList()
+				if ( TableSize(sList) > 0 ) then
+					local i,item = next (sList)
+					if ( i and item ) then
+						mc_ai_vendor.isSelling = true
+						d("Selling :"..(item.name))
+						item:Sell()
+						return
+					end				
+				else
+					d("Selling finished..")				
+					Inventory:SellJunk()
+					mc_ai_vendor.isSelling = false				
+				end
 			end
 		end
 	end
@@ -274,7 +278,7 @@ end
 -- BUY TOOLS
 --************
 mc_ai_vendor.isBuying = false
-function mc_ai_vendor.NeedToBuyGatheringTools( vendornearby )	
+function mc_ai_vendor.NeedToBuyGatheringTools( vendornearby )
 	if ( mc_ai_vendor.isBuying ) then return true end
 	
 	if ( BuyManager_Active == "1") then
@@ -289,12 +293,28 @@ function mc_ai_vendor.NeedToBuyGatheringTools( vendornearby )
 			end
 			
 			-- Check for Gatheringtools to buy
-			local toolCount = mc_vendormanager.GetGatheringToolsCount()
-			if (tonumber(BuyManager_toolStacks)/2 >= toolCount[1] or 
-				tonumber(BuyManager_toolStacks)/2 >= toolCount[2] or 
-				tonumber(BuyManager_toolStacks)/2 >= toolCount[3]) then
-				return true		
-			end			
+			local toolsToBuy = mc_vendormanager.GetNeededGatheringToolsInfo()
+			if (TableSize(toolsToBuy[1]) > 0) then
+				for _,nmbr in pairs(toolsToBuy[1]) do
+					if (tonumber(nmbr) ~= nil and nmbr >= BuyManager_toolStacks/2) then
+						return true
+					end
+				end
+			end
+			if (TableSize(toolsToBuy[2]) > 0) then
+				for _,nmbr in pairs(toolsToBuy[2]) do
+					if (tonumber(nmbr) ~= nil and nmbr >= BuyManager_toolStacks/2) then
+						return true
+					end
+				end
+			end
+			if (TableSize(toolsToBuy[3]) > 0) then
+				for _,nmbr in pairs(toolsToBuy[3]) do
+					if (tonumber(nmbr) ~= nil and nmbr >= BuyManager_toolStacks/2) then
+						return true
+					end
+				end
+			end
 		
 		else
 			-- Go only to Vendor when we dont have any kit / tools at all
@@ -303,17 +323,32 @@ function mc_ai_vendor.NeedToBuyGatheringTools( vendornearby )
 			local kitsToBuy = mc_vendormanager.NeedSalvageKitInfo()
 			if ( kitsToBuy.count == 0 and tonumber(BuyManager_sStacks) > 0 and Inventory.freeSlotCount >= kitsToBuy.count and TableSize(kitsToBuy.kits)>0 ) then
 			-- We have no Kits left, we should buy some and have enought space in Inv to buy them
-				return true					
-			end	
+				return true
+			end
 			
 			-- Check for Gatheringtools to buy
 			local toolsToBuy = mc_vendormanager.GetNeededGatheringToolsInfo()
-			if ((Inventory:GetEquippedItemBySlot(GW2.EQUIPMENTSLOT.ForagingTool) == nil and TableSize(toolsToBuy[1])>0 )or 
-				(Inventory:GetEquippedItemBySlot(GW2.EQUIPMENTSLOT.LoggingTool) == nil  and TableSize(toolsToBuy[2])>0 )or 
-				(Inventory:GetEquippedItemBySlot(GW2.EQUIPMENTSLOT.MiningTool) == nil   and TableSize(toolsToBuy[3])>0 )) then 
-				
-				return true				
-			end			
+			if (Inventory:GetEquippedItemBySlot(GW2.EQUIPMENTSLOT.ForagingTool) == nil and TableSize(toolsToBuy[1]) > 0) then
+				for _,nmbr in pairs(toolsToBuy[1]) do
+					if (nmbr == BuyManager_toolStacks) then
+						return true
+					end
+				end
+			end
+			if (Inventory:GetEquippedItemBySlot(GW2.EQUIPMENTSLOT.LoggingTool) == nil and TableSize(toolsToBuy[2]) > 0) then
+				for _,nmbr in pairs(toolsToBuy[2]) do
+					if (nmbr == BuyManager_toolStacks) then
+						return true
+					end
+				end
+			end
+			if (Inventory:GetEquippedItemBySlot(GW2.EQUIPMENTSLOT.MiningTool) == nil and TableSize(toolsToBuy[3]) > 0) then
+				for _,nmbr in pairs(toolsToBuy[3]) do
+					if (nmbr == BuyManager_toolStacks) then
+						return true
+					end
+				end
+			end
 			
 		end
 	end
@@ -347,7 +382,7 @@ end
 c_quickbuy = inheritsFrom( ml_cause )
 e_quickbuy = inheritsFrom( ml_effect )
 function c_quickbuy:evaluate()	
-	return (BuyManager_Active == "1" and Inventory.freeSlotCount > 0 and ( 
+	return (BuyManager_Active == "1" and Inventory.freeSlotCount > 0 and Player:GetWalletEntry(1) > 150 and( 
 		( (Inventory:IsVendorOpened() or Player:IsConversationOpen()) and ( mc_ai_vendor.isBuying ) ) -- so we wont leave the vendor after we sold 1 item ;)
 		or 
 		( mc_ai_vendor.NeedToBuyGatheringTools( true ) and TableSize(mc_ai_vendor.GetClosestBuyVendor()) > 0) -- We need new gathering tools
@@ -438,7 +473,7 @@ end
 c_vendorbuy = inheritsFrom( ml_cause )
 e_vendorbuy = inheritsFrom( ml_effect )
 function c_vendorbuy:evaluate()	
-	return (BuyManager_Active == "1" and  Inventory.freeSlotCount > 0 and ( 
+	return (BuyManager_Active == "1" and  Inventory.freeSlotCount > 0 and Player:GetWalletEntry(1) > 150 and( 
 			( (Inventory:IsVendorOpened() or Player:IsConversationOpen()) and ( mc_ai_vendor.isBuying ) )
 			or 
 			( mc_ai_vendor.NeedToBuyGatheringTools() and TableSize(mc_ai_vendor.GetClosestBuyVendorMarker()) > 0)
@@ -532,139 +567,141 @@ function e_vendorbuy:execute()
 end
 function mc_ai_vendor.BuyAtVendor( vendor , nearbyvendor)
 	
-	-- BUY TOOLS
-	if ( mc_ai_vendor.NeedToBuyGatheringTools() or ( nearbyvendor and mc_ai_vendor.NeedToBuyGatheringTools( true ) )) then
-		if ( not Inventory:IsVendorOpened() and Player:IsConversationOpen() ) then
-			if ( not mc_ai_vendor.OpenSellWindow() ) then
-				ml_error( "Vendoring: can't Buy Tools at vendor.." )
-				ml_error("Blacklisted BuyTools-Vendor"..vendor.name)
-				mc_blacklist.AddBlacklistEntry(GetString("vendorsbuy"), vendor.id, vendor.name, true)	
-			end
-		else
-			-- BUY TOOLS HERE
-			--set mc_ai_vendor.isBuying treu/false			
-			if ( Inventory:GetVendorServiceType() ~= GW2.VENDORSERVICETYPE.VendorBuy ) then
-				d("Switching to Buy Window")
-				Inventory:SetVendorServiceType(GW2.VENDORSERVICETYPE.VendorBuy)
-				return
-			end
-			local VList = VendorItemList("")
-			if ( TableSize(VList)>0 )then
-				local kitsToBuy = mc_vendormanager.NeedSalvageKitInfo()
-				local toolCount = mc_vendormanager.GetGatheringToolsCount()
-				
-				-- Buy SalvageKits				
-				-- stop when we have enough tools				
-				if ( mc_ai_vendor.isBuying and kitsToBuy.count >= tonumber(BuyManager_sStacks) and 
-					tonumber(BuyManager_toolStacks) <= toolCount[1] and 
-					tonumber(BuyManager_toolStacks) <= toolCount[2] and 
-					tonumber(BuyManager_toolStacks) <= toolCount[3] )
-					then
-					d("Finished Buying SalvageTools...")
-					mc_ai_vendor.isBuying = false
-					return
-				end				
-				
-				if ( kitsToBuy.count < tonumber(BuyManager_sStacks)) then
-					for i=#kitsToBuy.kits,1,-1 do						
-						local id,item = next(VList)
-						while (id and item) do
-							local itemID = item.itemID							
-							if (kitsToBuy.kits[i] == itemID) then
-								mc_ai_vendor.isBuying = true
-								d("Buying SalvageKit: "..item.name)
-								item:Buy()
-								mc_global.Wait(math.random(550,1050))
-								return
-							end
-							id,item = next(VList,id)	
-						end
-					end
+	if ( mc_global.now - mc_ai_vendor.vendorThrottleTmr > 500 ) then
+		mc_ai_vendor.vendorThrottleTmr = mc_global.now
+		-- BUY TOOLS
+		if ( mc_ai_vendor.NeedToBuyGatheringTools() or ( nearbyvendor and mc_ai_vendor.NeedToBuyGatheringTools( true ) )) then
+			if ( not Inventory:IsVendorOpened() and Player:IsConversationOpen() ) then
+				if ( not mc_ai_vendor.OpenSellWindow() ) then
+					ml_error( "Vendoring: can't Buy Tools at vendor.." )
+					ml_error("Blacklisted BuyTools-Vendor"..vendor.name)
+					mc_blacklist.AddBlacklistEntry(GetString("vendorsbuy"), vendor.id, vendor.name, true)	
 				end
-				
-				-- Buy GatheringTools
-				local toolsToBuy = mc_vendormanager.GetNeededGatheringToolsInfo()
-				d("BuyingTools")
-				-- Buy FTools
-				if ( tonumber(BuyManager_toolStacks) > toolCount[1] and TableSize(toolsToBuy[1])>0) then					
-					for i=#mc_vendormanager.tools[0],1,-1 do
-						local tid,count = next(toolsToBuy[1])
-						while (tid) do						
-							if ( mc_vendormanager.tools[0][i] == tid) then
-								-- First highest rarity item we should buy
-								local index,item = next(VList)
-								while (index and item) do
-									if ( item.itemID == tid ) then 
-										mc_ai_vendor.isBuying = true
-										d("Buying HarvestingTool: "..item.name)
-										item:Buy()
-										mc_global.Wait(math.random(550,1050))
-										return
-									end
-									index,item = next(VList,index)
-								end
-							end
-							tid,count = next(toolsToBuy[1],tid)
-						end
-					end
-				end
-										
-				-- Buy LTools
-				if ( tonumber(BuyManager_toolStacks) > toolCount[2] and TableSize(toolsToBuy[2])>0) then
-					for i=#mc_vendormanager.tools[1],1,-1 do
-						local tid,count = next(toolsToBuy[2])
-						while (tid) do						
-							if ( mc_vendormanager.tools[1][i] == tid) then
-								-- First highest rarity item we should buy
-								local index,item = next(VList)
-								while (index and item) do
-									if ( item.itemID == tid ) then 
-										mc_ai_vendor.isBuying = true
-										d("Buying LoggingTool: "..item.name)
-										item:Buy()
-										mc_global.Wait(math.random(550,1050))
-										return
-									end
-									index,item = next(VList,index)
-								end
-							end
-							tid,count = next(toolsToBuy[2],tid)
-						end
-					end
-				end
-
-				-- Buy MTools
-				if ( tonumber(BuyManager_toolStacks) > toolCount[3] and TableSize(toolsToBuy[3])>0) then
-					for i=#mc_vendormanager.tools[2],1,-1 do
-						local tid,count = next(toolsToBuy[3])
-						while (tid) do						
-							if ( mc_vendormanager.tools[2][i] == tid) then
-								-- First highest rarity item we should buy
-								local index,item = next(VList)
-								while (index and item) do
-									if ( item.itemID == tid ) then 
-										mc_ai_vendor.isBuying = true
-										d("Buying MiningTool: "..item.name)
-										item:Buy()
-										mc_global.Wait(math.random(550,1050))
-										return
-									end
-									index,item = next(VList,index)
-								end
-							end
-							tid,count = next(toolsToBuy[3],tid)
-						end
-					end
-				end
-								
-				-- Seems we cant buy the tools we need at this Vendor, blacklisting him for 60 min
-				ml_error( "Vendoring: can't Buy the Tools we want at this vendor.." )
-				ml_error("Blacklisted BuyTools-Vendor for 15 min"..vendor.name)
-				mc_blacklist.AddBlacklistEntry(GetString("vendorsbuy"), vendor.id, vendor.name, mc_global.now + 900000)	
-			
 			else
-				ml_error( "VendorList Empty??" )
-			end			
+				-- BUY TOOLS HERE
+				--set mc_ai_vendor.isBuying treu/false			
+				if ( Inventory:GetVendorServiceType() ~= GW2.VENDORSERVICETYPE.VendorBuy ) then
+					d("Switching to Buy Window")
+					Inventory:SetVendorServiceType(GW2.VENDORSERVICETYPE.VendorBuy)
+					return
+				end
+				local VList = VendorItemList("")
+				if ( TableSize(VList)>0 )then
+					local kitsToBuy = mc_vendormanager.NeedSalvageKitInfo()
+					local toolCount = mc_vendormanager.GetGatheringToolsCount()
+					
+					-- Buy SalvageKits				
+					-- stop when we have enough tools				
+					if ( mc_ai_vendor.isBuying and kitsToBuy.count >= tonumber(BuyManager_sStacks) and 
+						tonumber(BuyManager_toolStacks) <= toolCount[1] and 
+						tonumber(BuyManager_toolStacks) <= toolCount[2] and 
+						tonumber(BuyManager_toolStacks) <= toolCount[3] )
+						then
+						d("Finished Buying SalvageTools...")
+						mc_ai_vendor.isBuying = false
+						return
+					end				
+					
+					if ( kitsToBuy.count < tonumber(BuyManager_sStacks)) then --current count < max stacks wanted
+						for i=#kitsToBuy.kits,1,-1 do						
+							local id,item = next(VList)
+							while (id and item) do
+								local itemID = item.itemID							
+								if (kitsToBuy.kits[i] == itemID) then
+									mc_ai_vendor.isBuying = true
+									d("Buying SalvageKit: "..item.name)
+									item:Buy()
+									return
+								end
+								id,item = next(VList,id)	
+							end
+						end
+					end
+					
+					-- Buy GatheringTools
+					local toolsToBuy = mc_vendormanager.GetNeededGatheringToolsInfo()
+					d("BuyingTools")
+					-- Buy FTools
+					if ( tonumber(BuyManager_toolStacks) > toolCount[1] and TableSize(toolsToBuy[1])>0) then					
+						for i=#mc_vendormanager.tools[0],1,-1 do
+							local tid,count = next(toolsToBuy[1])
+							while (tid) do						
+								if ( mc_vendormanager.tools[0][i] == tid) then
+									-- First highest rarity item we should buy
+									local index,item = next(VList)
+									while (index and item) do
+										if ( item.itemID == tid ) then 
+											mc_ai_vendor.isBuying = true
+											d("Buying HarvestingTool: "..item.name)
+											item:Buy()
+											mc_global.Wait(math.random(450,850))
+											return
+										end
+										index,item = next(VList,index)
+									end
+								end
+								tid,count = next(toolsToBuy[1],tid)
+							end
+						end
+					end
+											
+					-- Buy LTools
+					if ( tonumber(BuyManager_toolStacks) > toolCount[2] and TableSize(toolsToBuy[2])>0) then
+						for i=#mc_vendormanager.tools[1],1,-1 do
+							local tid,count = next(toolsToBuy[2])
+							while (tid) do						
+								if ( mc_vendormanager.tools[1][i] == tid) then
+									-- First highest rarity item we should buy
+									local index,item = next(VList)
+									while (index and item) do
+										if ( item.itemID == tid ) then 
+											mc_ai_vendor.isBuying = true
+											d("Buying LoggingTool: "..item.name)
+											item:Buy()
+											mc_global.Wait(math.random(450,850))
+											return
+										end
+										index,item = next(VList,index)
+									end
+								end
+								tid,count = next(toolsToBuy[2],tid)
+							end
+						end
+					end
+
+					-- Buy MTools
+					if ( tonumber(BuyManager_toolStacks) > toolCount[3] and TableSize(toolsToBuy[3])>0) then
+						for i=#mc_vendormanager.tools[2],1,-1 do
+							local tid,count = next(toolsToBuy[3])
+							while (tid) do						
+								if ( mc_vendormanager.tools[2][i] == tid) then
+									-- First highest rarity item we should buy
+									local index,item = next(VList)
+									while (index and item) do
+										if ( item.itemID == tid ) then 
+											mc_ai_vendor.isBuying = true
+											d("Buying MiningTool: "..item.name)
+											item:Buy()
+											mc_global.Wait(math.random(450,850))
+											return
+										end
+										index,item = next(VList,index)
+									end
+								end
+								tid,count = next(toolsToBuy[3],tid)
+							end
+						end
+					end
+									
+					-- Seems we cant buy the tools we need at this Vendor, blacklisting him for 60 min
+					ml_error( "Vendoring: can't Buy the Tools we want at this vendor.." )
+					ml_error("Blacklisted BuyTools-Vendor for 15 min"..vendor.name)
+					mc_blacklist.AddBlacklistEntry(GetString("vendorsbuy"), vendor.id, vendor.name, mc_global.now + 900000)	
+				
+				else
+					ml_error( "VendorList Empty??" )
+				end			
+			end
 		end
 	end
 end
@@ -674,7 +711,7 @@ end
 --************
 -- REPAIR
 --************
-function mc_ai_vendor.NeedToRepair( vendornearby )
+function mc_ai_vendor.NeedToRepair( vendornearby )	
 	
 	local damaged = 0
 	local broken = 0
@@ -683,7 +720,7 @@ function mc_ai_vendor.NeedToRepair( vendornearby )
 			local eqItem = Inventory:GetEquippedItemBySlot( i )
 			if ( eqItem ~= nil ) then
 				local dur = eqItem.durability 
-				if ( dur == GW2.ITEMDURABILITY.Broken) then broken = broken + 1 damaged = damaged + 1 end
+				if ( dur == GW2.ITEMDURABILITY.Broken) then broken = broken + 1 end
 				if ( dur == GW2.ITEMDURABILITY.Damaged) then damaged = damaged + 1 end
 			end
 		end
@@ -693,9 +730,9 @@ function mc_ai_vendor.NeedToRepair( vendornearby )
 		return broken > tonumber(gRepairBrokenLimit)/2 or damaged > tonumber(gRepairDamageLimit)/2 --half the settings in case we are nearby a repairguy
 	end
 	
-	return broken > tonumber(gRepairBrokenLimit) or damaged > tonumber(gRepairDamageLimit)
+	return broken > tonumber(gRepairBrokenLimit) or damaged > tonumber(gRepairDamageLimit)	
 end
-function mc_ai_vendor.GetClosestRepairVendorMarker()
+function mc_ai_vendor.GetClosestRepairVendorMarker()	
 	if ( mc_ai_vendor.isSelling ) then return true end
 	local mList = MapMarkerList("nearest,onmesh,contentID="..GW2.MAPMARKER.Repair..",exclude_characterid="..mc_blacklist.GetExcludeString(GetString("vendors"))) 
 	if ( TableSize(mList) > 0 )  then
@@ -722,70 +759,71 @@ function mc_ai_vendor.GetClosestRepairVendor()
 end
 c_quickrepair = inheritsFrom( ml_cause )
 e_quickrepair = inheritsFrom( ml_effect )
-function c_quickrepair:evaluate()
-	return (  mc_ai_vendor.NeedToRepair( true ) and TableSize(mc_ai_vendor.GetClosestRepairVendor()) > 0)
+function c_quickrepair:evaluate()	
+	return (  mc_ai_vendor.NeedToRepair( true ) and TableSize(mc_ai_vendor.GetClosestRepairVendor()) > 0 and Player:GetWalletEntry(1) > 150 )
 end
 function e_quickrepair:execute()
-	ml_log("e_quickrepair")
+	ml_log("e_quickrepair")	
 	-- We are already at a vendor
 	if ( Player:IsConversationOpen() ) then
 		local t = Player:GetTarget()
 		if ( t ) then
 			return mc_ai_vendor.RepairAtVendor( t , true)
-		else
+		else			
 			ml_error("We are at a vendor but dont have him targeted!?!")
 		end
 	else
-		local vendor = mc_ai_vendor.GetClosestRepairVendor()
-		if ( vendor ~= nil ) then
-			-- We are close enough and the vendor is in CharList
-			if (not vendor.isInInteractRange) then
-				-- MoveIntoInteractRange
-				local tPos = vendor.pos
-				if ( tPos ) then
-					if ( c_DestroyGadget:evaluate() ) then e_DestroyGadget:execute() end
-					local navResult = tostring(Player:MoveTo(tPos.x,tPos.y,tPos.z,50,false,true,true))
-					if (tonumber(navResult) < 0) then
-						d("e_quickrepair.MoveIntoInteractRange result: "..tonumber(navResult))
-					end
-					if ( mc_global.now - mc_ai_vendor.tmr > mc_ai_vendor.threshold ) then
-						mc_ai_vendor.tmr = mc_global.now
-						mc_ai_vendor.threshold = math.random(1500,5000)
-						mc_skillmanager.HealMe()
-					end
-					ml_log("MoveToRepairVendor..")
-					return true
-				end
-			else
-				-- Interact
-				Player:StopMovement()
-				local t = Player:GetTarget()
-				if ( vendor.selectable and (not t or t.id ~= vendor.id )) then
-					Player:SetTarget( vendor.id )
-				else
-					
-					--if ( not Inventory:IsVendorOpened() and not Player:IsConversationOpen() ) then
-					if ( not Player:IsConversationOpen() ) then
-						ml_log( " Opening Vendor.. " )
-						Player:Interact( vendor.id )
-						mc_global.Wait(1500)
-						return true
+	
+		local vendor = mc_ai_vendor.GetClosestRepairVendor()		
+		if ( vendor ~= nil ) then				
+					-- We are close enough and the vendor is in CharList
+					if (not vendor.isInInteractRange) then
+						-- MoveIntoInteractRange
+						local tPos = vendor.pos
+						if ( tPos ) then
+							if ( c_DestroyGadget:evaluate() ) then e_DestroyGadget:execute() end
+							local navResult = tostring(Player:MoveTo(tPos.x,tPos.y,tPos.z,50,false,true,true))		
+							if (tonumber(navResult) < 0) then
+								d("e_quickrepair.MoveIntoInteractRange result: "..tonumber(navResult))					
+							end
+							if ( mc_global.now - mc_ai_vendor.tmr > mc_ai_vendor.threshold ) then
+								mc_ai_vendor.tmr = mc_global.now
+								mc_ai_vendor.threshold = math.random(1500,5000)
+								mc_skillmanager.HealMe()
+							end
+							ml_log("MoveToRepairVendor..")
+							return true
+						end
 					else
-						return mc_ai_vendor.RepairAtVendor( vendor, true )
-					end
-				end
-			end
+						-- Interact
+						Player:StopMovement()
+						local t = Player:GetTarget()
+						if ( vendor.selectable and (not t or t.id ~= vendor.id )) then
+							Player:SetTarget( vendor.id )
+						else
+							
+							--if ( not Inventory:IsVendorOpened() and not Player:IsConversationOpen() ) then
+							if ( not Player:IsConversationOpen() ) then
+								ml_log( " Opening Vendor.. " )
+								Player:Interact( vendor.id )
+								mc_global.Wait(1500)
+								return true
+							else
+								return mc_ai_vendor.RepairAtVendor( vendor, true )
+							end					 
+						end			
+					end	
 		else
 			ml_error("No Repair Vendor found! TODO: Get Vendor from MapData List")
 			
 		end
 	end
-	return ml_log(false)
+	return ml_log(false)		
 end
 c_vendorrepair = inheritsFrom( ml_cause )
 e_vendorrepair = inheritsFrom( ml_effect )
-function c_vendorrepair:evaluate()
-	return ( mc_ai_vendor.NeedToRepair() and  TableSize(mc_ai_vendor.GetClosestRepairVendorMarker()) > 0)
+function c_vendorrepair:evaluate()	
+	return ( mc_ai_vendor.NeedToRepair() and  TableSize(mc_ai_vendor.GetClosestRepairVendorMarker()) > 0 and Player:GetWalletEntry(1) > 150 )
 end
 function e_vendorrepair:execute()
 	ml_log("e_vendorrepair")
@@ -800,19 +838,19 @@ function e_vendorrepair:execute()
 		end
 	else
 	
-		local vMarker = mc_ai_vendor.GetClosestRepairVendorMarker()
-		if ( vMarker ~= nil ) then
-			if ( vMarker.characterID ~= nil and vMarker.characterID ~= 0 and vMarker.characterID ~= "") then
+		local vMarker = mc_ai_vendor.GetClosestRepairVendorMarker()		
+		if ( vMarker ~= nil ) then	
+			if ( vMarker.characterID ~= nil and vMarker.characterID ~= 0 and vMarker.characterID ~= "") then			
 				local char = CharacterList:Get(vMarker.characterID)
-				if ( char ) then
+				if ( char ) then				
 					-- We are close enough and the char is in CharList
 					if (not char.isInInteractRange) then
 						-- MoveIntoInteractRange
 						local tPos = char.pos
 						if ( tPos ) then
-							local navResult = tostring(Player:MoveTo(tPos.x,tPos.y,tPos.z,50,false,true,true))
+							local navResult = tostring(Player:MoveTo(tPos.x,tPos.y,tPos.z,50,false,true,true))		
 							if (tonumber(navResult) < 0) then
-								ml_error("e_vendorrepair.MoveIntoInteractRange result: "..tonumber(navResult))
+								ml_error("e_vendorrepair.MoveIntoInteractRange result: "..tonumber(navResult))					
 							end
 							if ( mc_global.now - mc_ai_vendor.tmr > mc_ai_vendor.threshold ) then
 								mc_ai_vendor.tmr = mc_global.now
@@ -837,17 +875,17 @@ function e_vendorrepair:execute()
 								return true
 							else
 								return mc_ai_vendor.RepairAtVendor( char )
-							end
-						end
+							end					 
+						end			
 					end
 					
 				else
 					-- We are not close enought, char is not yet in Charlist
 					local pos = vMarker.pos
 					if ( pos ) then
-						local navResult = tostring(Player:MoveTo(pos.x,pos.y,pos.z,50,false,true,true))
+						local navResult = tostring(Player:MoveTo(pos.x,pos.y,pos.z,50,false,true,true))		
 						if (tonumber(navResult) < 0) then
-							d("e_vendorrepair.MoveIntovMarkerRange result: "..tonumber(navResult))
+							d("e_vendorrepair.MoveIntovMarkerRange result: "..tonumber(navResult))					
 						end
 						if ( mc_global.now - mc_ai_vendor.tmr > mc_ai_vendor.threshold ) then
 							mc_ai_vendor.tmr = mc_global.now
@@ -866,7 +904,7 @@ function e_vendorrepair:execute()
 			
 		end
 	end
-	return ml_log(false)
+	return ml_log(false)		
 end
 function mc_ai_vendor.RepairAtVendor( vendor , nearbyvendor)
 	-- REPAIR

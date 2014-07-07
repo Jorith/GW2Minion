@@ -43,15 +43,15 @@ function ml_effect:SafetyCheck()
 	-- delays the execution, so that some actions performed are able to wait for the game to react proper	
 	if ( self.delay > 0 ) then
 		if ( self.first_execution == 0 ) then		
-			self.first_execution = mc_global.now			
+			self.first_execution = ml_global_information.Now			
 			return false
 		else			
-			return ( mc_global.now - self.first_execution ) > self.delay
+			return ( ml_global_information.Now - self.first_execution ) > self.delay
 		end		
 	end
 
 	if ( self.throttle > 0 ) then
-		local Elapsed = ( mc_global.now - self.last_execution )
+		local Elapsed = ( ml_global_information.Now - self.last_execution )
 		--ml_debug( "Elapsed: ".. tostring( Elapsed ) .. " - " .. tostring( self.throttle ) )
 		return Elapsed >  self.throttle
 	end

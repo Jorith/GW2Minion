@@ -72,19 +72,21 @@ function mc_radar.HandleInit()
     gRadarX = Settings.GW2Minion.gRadarX
     gRadarY = Settings.GW2Minion.gRadarY
     
-    if ( gRadar == "0") then HackManager:SetRadarSettings("gRadar",false) else HackManager:SetRadarSettings("gRadar",true) end
-    if ( g2dRadar == "0") then HackManager:SetRadarSettings("g2dRadar",false) else HackManager:SetRadarSettings("g2dRadar",true) end
-    if ( g3dRadar == "0") then HackManager:SetRadarSettings("g3dRadar",false) else HackManager:SetRadarSettings("g3dRadar",true) end
-    if ( g2dRadarFullScreen == "0") then HackManager:SetRadarSettings("g2dRadarFullScreen",false) else HackManager:SetRadarSettings("g2dRadarFullScreen",true) end
-	if ( gRadarZoom == "0") then HackManager:SetRadarSettings("gRadarZoom","5") end	
-    if ( gRadarShowNode == "0") then HackManager:SetRadarSettings("gRadarShowNode",false) else HackManager:SetRadarSettings("gRadarShowNode",true) end
-    if ( gRadarShowPlayers == "0") then HackManager:SetRadarSettings("gRadarShowPlayers",false) else HackManager:SetRadarSettings("gRadarShowPlayers",true) end
-    if ( gRadarShowBattleNPCs == "0") then HackManager:SetRadarSettings("gRadarShowBattleNPCs",false) else HackManager:SetRadarSettings("gRadarShowBattleNPCs",true) end
-	if ( gRadarShowOnlyEnemies == "0") then HackManager:SetRadarSettings("gRadarShowOnlyEnemies",false) else HackManager:SetRadarSettings("gRadarShowOnlyEnemies",true) end
+	if ( HackManager ) then
+		if ( gRadar == "0") then HackManager:SetRadarSettings("gRadar",false) else HackManager:SetRadarSettings("gRadar",true) end
+		if ( g2dRadar == "0") then HackManager:SetRadarSettings("g2dRadar",false) else HackManager:SetRadarSettings("g2dRadar",true) end
+		if ( g3dRadar == "0") then HackManager:SetRadarSettings("g3dRadar",false) else HackManager:SetRadarSettings("g3dRadar",true) end
+		if ( g2dRadarFullScreen == "0") then HackManager:SetRadarSettings("g2dRadarFullScreen",false) else HackManager:SetRadarSettings("g2dRadarFullScreen",true) end
+		if ( gRadarZoom == "0") then HackManager:SetRadarSettings("gRadarZoom","5") end	
+		if ( gRadarShowNode == "0") then HackManager:SetRadarSettings("gRadarShowNode",false) else HackManager:SetRadarSettings("gRadarShowNode",true) end
+		if ( gRadarShowPlayers == "0") then HackManager:SetRadarSettings("gRadarShowPlayers",false) else HackManager:SetRadarSettings("gRadarShowPlayers",true) end
+		if ( gRadarShowBattleNPCs == "0") then HackManager:SetRadarSettings("gRadarShowBattleNPCs",false) else HackManager:SetRadarSettings("gRadarShowBattleNPCs",true) end
+		if ( gRadarShowOnlyEnemies == "0") then HackManager:SetRadarSettings("gRadarShowOnlyEnemies",false) else HackManager:SetRadarSettings("gRadarShowOnlyEnemies",true) end
+		
+		if ( tonumber(gRadarX) ~= nil) then HackManager:SetRadarSettings("gRadarX",tonumber(gRadarX)) end
+		if ( tonumber(gRadarY) ~= nil) then HackManager:SetRadarSettings("gRadarY",tonumber(gRadarY)) end
+    end
 	
-    if ( tonumber(gRadarX) ~= nil) then HackManager:SetRadarSettings("gRadarX",tonumber(gRadarX)) end
-    if ( tonumber(gRadarY) ~= nil) then HackManager:SetRadarSettings("gRadarY",tonumber(gRadarY)) end
-    
 	GUI_NewButton(mc_radar.MainWindow.Name,"Cant See Radar? Press Me","Dev.ChangeMDepth")
 	GUI_UnFoldGroup(mc_radar.MainWindow.Name,"Radar");	
     GUI_WindowVisible(mc_radar.MainWindow.Name,false)

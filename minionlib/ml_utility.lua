@@ -1,10 +1,10 @@
 -- flips a table so keys become values
 function table_invert(t)
-	local s={}
-	for k,v in pairs(t) do
-		s[v]=k
-	end
-	return s
+   local s={}
+   for k,v in pairs(t) do
+     s[v]=k
+   end
+   return s
 end
 
 -- takes in a % number and gives back a random number near that value, for randomizing skill usage at x% hp
@@ -12,18 +12,22 @@ function randomize(val)
 	if ( val <= 100 and val > 0) then
 		local high,low
 		if ( (val + 15) > 100) then
-			high = 100
+			high = 100			
 		else
 			high = val + 15
 		end
 		if ( (val - 15) <= 0) then
-			low = 1
+			low = 1			
 		else
 			low = val - 15
 		end
 		return math.random(low,high)
 	end
 	return 0
+end
+
+function TimeSince(previousTime)
+    return ml_global_information.Now - previousTime
 end
 
 function PathDistance(posTable)
@@ -46,11 +50,11 @@ function PathDistance(posTable)
 end
 
 function FileExists(file)
-	local f = fileread(file)
-	if ( TableSize(f) > 0) then
-		return true
-	end
-	return false 
+  local f = fileread(file)
+  if ( TableSize(f) > 0) then
+    return true
+  end
+  return false 
 end
 
 function LinesFrom(file)
@@ -70,6 +74,19 @@ function LinesFrom(file)
   return cleanedLines 
 end
 
+function pairsByKeys (t, f)
+  local a = {}
+	for n in pairs(t) do table.insert(a, n) end
+		table.sort(a, f)
+		local i = 0      -- iterator variable
+		local iter = function ()   -- iterator function
+		i = i + 1
+		if a[i] == nil then return nil
+		else return a[i], t[a[i]]
+		end
+	end
+  return iter
+end
 
 function StringSplit(s,sep)
 	local lasti, done, g = 1, false, s:gmatch('(.-)'..sep..'()')
@@ -84,31 +101,32 @@ function StringSplit(s,sep)
 end
 
 function StringContains(sString, item)
+
 	if (sString == nil) then return false end
 			
 	for _orids in StringSplit(sString,",") do
-		if (tostring(item) == tostring(_orids)) then 
+		if (item == tonumber(_orids)) then 
 			return true
-		end
+		end		
 	end
-	return false
+    return false
 end
 
 function ApproxEqual(num1, num2)
-	return math.abs(math.abs(num1) - math.abs(num2)) < .000001
+    return math.abs(math.abs(num1) - math.abs(num2)) < .000001
 end
 
 function TableContains(table, element)
-	for _, value in pairs(table) do
-		if value == element then
-			return true
-		end
-	end
-	return false
+  for _, value in pairs(table) do
+    if value == element then
+      return true
+    end
+  end
+  return false
 end
 
 function ValidTable(table)
-	return table ~= nil and TableSize(table) > 0
+    return table ~= nil and TableSize(table) > 0
 end
 
 function ValidString(string)
@@ -151,6 +169,42 @@ end
 
 function round(num, idp)
   return tonumber(string.format("%." .. (idp or 0) .. "f", num))
+end
+
+function findfunction(x)
+  assert(type(x) == "string")
+  local f=_G
+  for v in x:gmatch("[^%.]+") do
+    if type(f) ~= "table" then
+       return nil, "looking for '"..v.."' expected table, not "..type(f)
+    end
+    f=f[v]
+  end
+  if type(f) == "function" then
+    return f
+  else
+    return nil, "expected function, not "..type(f)
+  end
+end
+
+function table_merge(t1, t2)
+    for k,v in pairs(t2) do t1[k] = v end
+end
+
+function GetRandomTableEntry(t)
+    if (ValidTable(t)) then
+        local i = math.random(1,TableSize(t))
+        local counter = 1
+        for key, value in pairs(t) do
+            if (counter == i) then
+                return value
+            else
+                counter = counter + 1
+            end
+        end
+    end
+    
+    ml_debug("Error in GetRandomTableEntry()")
 end
 
 --psuedo enum values for task classes

@@ -9,8 +9,8 @@ ml_cause.last_execution = 0
 
 function ml_cause:SafetyCheck()
 	if ( self.throttle > 0 ) then
-		if (mc_global.now - self.last_execution > self.throttle) then	
-			self.last_execution = mc_global.now
+		if (ml_global_information.Now - self.last_execution > self.throttle) then	
+			self.last_execution = ml_global_information.Now
 			return true
 		end
 		return false
