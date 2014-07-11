@@ -282,9 +282,7 @@ function mc_ai_vendor.NeedToBuyGatheringTools( vendornearby )
 	if ( mc_ai_vendor.isBuying ) then return true end
 	
 	if ( BuyManager_Active == "1") then
-		if ( vendornearby ) then
-			-- Go to nearby vendor when we have "some" tools left and can use the change to fill up
-			
+		if ( vendornearby ) then -- Go to nearby vendor when we have "some" tools left and can use the chance to fill up
 			-- Check for SalvageKits to buy
 			local kitsToBuy = mc_vendormanager.NeedSalvageKitInfo()
 			if (tonumber(BuyManager_sStacks)/2 >= kitsToBuy.count and Inventory.freeSlotCount >= kitsToBuy.count and TableSize(kitsToBuy.kits)>0 ) then
@@ -316,8 +314,7 @@ function mc_ai_vendor.NeedToBuyGatheringTools( vendornearby )
 				end
 			end
 		
-		else
-			-- Go only to Vendor when we dont have any kit / tools at all
+		else -- Go only to Vendor when we dont have any kit / tools at all
 			
 			-- Check for SalvageKits to buy
 			local kitsToBuy = mc_vendormanager.NeedSalvageKitInfo()
